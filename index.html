@@ -1225,6 +1225,55 @@ html.fa-icons-ready #user-controls {
 @media screen and (max-width: 768px),
        screen and (orientation: landscape) and (max-height: 520px) and (max-width: 950px) {
 
+/* =========================================================
+   手機直式：
+   左側功能列展開按鈕
+   比照績效管理系統定案版
+========================================================= */
+@media screen
+and (max-width: 768px)
+and (orientation: portrait) {
+
+    .sidebar-toggle {
+        width: 44px !important;
+        height: 44px !important;
+
+        padding: 0 !important;
+
+        border-radius: 999px !important;
+
+        background: #2563eb !important;
+        color: #ffffff !important;
+
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+
+        line-height: 1 !important;
+
+        box-shadow:
+            0 10px 25px
+            rgba(37, 99, 235, 0.35) !important;
+    }
+
+    .sidebar-toggle i,
+    .sidebar-toggle svg {
+        width: 22px !important;
+        height: 22px !important;
+
+        margin: 0 !important;
+        padding: 0 !important;
+
+        flex: 0 0 22px;
+
+        display: block;
+
+        color: #ffffff !important;
+
+        stroke-width: 2.4px;
+    }
+}
+
     .main-layout {
         display: block;
         width: 100vw;
@@ -1564,14 +1613,14 @@ main {
 <body>
 
     <!-- 手機版：左側功能列開關，不影響桌機與列印 -->
-    <button
-        id="mobile-sidebar-toggle"
-        class="sidebar-toggle no-print"
-        onclick="toggleMobileSidebar()"
-        aria-label="開啟功能列"
-        aria-expanded="false">
-        ☰
-    </button>
+<button
+    id="mobile-sidebar-toggle"
+    class="sidebar-toggle no-print"
+    onclick="toggleMobileSidebar()"
+    aria-label="開啟功能列"
+    aria-expanded="false">
+    <i data-lucide="menu"></i>
+</button>
 
     <!-- 手機版：功能列展開時的背景遮罩 -->
     <div
@@ -22370,9 +22419,24 @@ function toggleMobileSidebar(forceOpen) {
     backdrop.classList.toggle('show', shouldOpen);
     document.body.classList.toggle('sidebar-open', shouldOpen);
 
-    toggleBtn.innerText = shouldOpen ? '×' : '☰';
-    toggleBtn.setAttribute('aria-expanded', shouldOpen ? 'true' : 'false');
-    toggleBtn.setAttribute('aria-label', shouldOpen ? '收納功能列' : '開啟功能列');
+toggleBtn.innerHTML = shouldOpen
+    ? '<i data-lucide="x"></i>'
+    : '<i data-lucide="menu"></i>';
+
+toggleBtn.setAttribute(
+    'aria-expanded',
+    shouldOpen ? 'true' : 'false'
+);
+
+toggleBtn.setAttribute(
+    'aria-label',
+    shouldOpen ? '收納功能列' : '開啟功能列'
+);
+
+/*
+ * 重新建立展開／收納 Lucide 圖示。
+ */
+initIcons();
 }
 
 function updateMobilePreviewScale() {
