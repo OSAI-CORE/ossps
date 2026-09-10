@@ -2057,7 +2057,7 @@ main {
 
 <!-- 權限登入 Modal：標準程序系統安全驗證視窗 -->
 <div id="login-modal"
-     onclick="closeLoginModalOutside(event)"
+     onpointerdown="closeLoginModalOutside(event)"
      class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center hidden p-4">
 
     <div onclick="event.stopPropagation()"
@@ -19551,8 +19551,28 @@ function removeCategory() {
             }
         }
 
-        function closeLoginModalOutside(event) {
-    toggleModal('login-modal', false);
+function closeLoginModalOutside(
+    event
+) {
+
+    /*
+     * 只有直接按下登入視窗外層遮罩時，
+     * 才允許關閉登入視窗。
+     *
+     * 在密碼框內點擊、拖曳反藍、
+     * 全選或放開滑鼠，都不會關閉。
+     */
+    if (
+        event.target !==
+        event.currentTarget
+    ) {
+        return;
+    }
+
+    toggleModal(
+        'login-modal',
+        false
+    );
 }
 
 function closePasswordModalOutside(event) {
