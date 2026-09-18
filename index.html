@@ -830,31 +830,30 @@ html.fa-icons-ready #user-controls {
 }
 
 /* =========================================================
-   雲端中心管理者垃圾桶
+   Cloud Center 垃圾桶圖示尺寸
 
-   完全比照績效管理系統：
+   比照證照管理系統：
    1. Font Awesome fa-trash
-   2. 12px
-   3. 平常 Slate 灰色
-   4. 桌機 Hover 只變紅
-   5. 無底色、外框、陰影
+   2. 固定 12px
+   3. 顏色由按鈕 text-red-500 控制
+   4. 不做 Hover 顏色變化
 ========================================================= */
 
-.performance-trash-btn {
-    padding:
-        0 !important;
+.cloud-tooltip-btn > .fa-trash {
+    font-size:
+        12px !important;
 
-    border:
-        0 !important;
+    line-height:
+        1 !important;
 
-    background:
-        transparent !important;
+    width:
+        12px !important;
 
-    box-shadow:
-        none !important;
+    height:
+        12px !important;
 
     display:
-        inline-flex;
+        inline-flex !important;
 
     align-items:
         center;
@@ -862,56 +861,8 @@ html.fa-icons-ready #user-controls {
     justify-content:
         center;
 
-    color:
-        #94a3b8;
-
-    transition:
-        color 0.18s ease !important;
-}
-
-
-/* 垃圾桶圖示 */
-.performance-trash-btn .fa-trash {
-    font-size:
-        12px !important;
-
-    line-height:
-        1 !important;
-
-    color:
-        #94a3b8;
-
-    transition:
-        color 0.18s ease !important;
-}
-
-
-/* 桌機 Hover：
-   僅垃圾桶由灰色轉紅 */
-@media (hover: hover)
-       and (pointer: fine) {
-
-    .performance-trash-btn:hover {
-        border:
-            0 !important;
-
-        background:
-            transparent !important;
-
-        box-shadow:
-            none !important;
-
-        transform:
-            none !important;
-    }
-
-
-    .performance-trash-btn:hover
-    .fa-trash {
-        color:
-            #dc2626 !important;
-    }
-
+    flex:
+        0 0 12px;
 }
 
 /* =========================================================
@@ -1246,26 +1197,52 @@ html.fa-icons-ready #user-controls {
     flex-shrink: 0;
 }
 
+/* 編輯按鈕：
+   使用上一版列印按鈕 Slate 色系 */
 .report-edit-btn.is-view {
-    background: rgba(30, 41, 59, 0.94);
-    border: 1px solid rgba(148, 163, 184, 0.42);
-    color: #e2e8f0;
+    background:
+        #334155;
+
+    border:
+        1px solid #334155;
+
+    color:
+        #ffffff;
 }
 
 .report-edit-btn.is-view:hover {
-    background: rgba(51, 65, 85, 0.96);
-    border-color: rgba(203, 213, 225, 0.55);
-    color: #ffffff;
+    background:
+        #475569;
+
+    border-color:
+        #475569;
+
+    color:
+        #ffffff;
 }
 
+/* 檢視狀態：
+   使用柔和淡藍色，與 PDF 白色及列印 Stone 拉開層次 */
 .report-edit-btn.is-editing {
-    background: rgba(248, 250, 252, 0.96);
-    border: 1px solid rgba(15, 23, 42, 0.24);
-    color: #0f172a;
+    background:
+        #dbeafe;
+
+    border:
+        1px solid #bfdbfe;
+
+    color:
+        #1d4ed8;
 }
 
 .report-edit-btn.is-editing:hover {
-    background: #ffffff;
+    background:
+        #bfdbfe;
+
+    border-color:
+        #93c5fd;
+
+    color:
+        #1e40af;
 }
 
 /* 比照證照管理系統附件管理：垃圾桶與附件圖示尺寸 */
@@ -2579,7 +2556,7 @@ main {
 
 <button
     onclick="window.print()"
-    class="top-data-action-btn bg-slate-700 text-white hover:bg-slate-600"
+    class="top-data-action-btn bg-stone-600 text-white hover:bg-stone-700"
 >
     <svg
         class="w-4 h-4"
@@ -10582,10 +10559,9 @@ ${toggleEnabledIconHtml}
     onclick="deleteCloudPreviewFromButton(this)"
     class="
         cloud-tooltip-btn
-        performance-trash-btn
         w-7 h-7
         rounded-lg
-        transition
+        text-red-500
         flex
         items-center
         justify-center
@@ -16356,10 +16332,9 @@ return `
     onclick="deleteCloudWorkspaceFromButton(this)"
     class="
         cloud-tooltip-btn
-        performance-trash-btn
         w-7 h-7
         rounded-lg
-        transition
+        text-red-500
         flex
         items-center
         justify-center
