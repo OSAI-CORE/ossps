@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>職業安全標準程序系統</title>
+<title>OSSPS｜職業安全標準程序系統</title>
 
 <!-- 外部 CDN：提前建立連線 -->
 <link
@@ -93,15 +93,45 @@
         }
 
 /* =========================================================
-   權限登入視窗
-   字型完全比照法規鑑別系統
+   權限登入／權限與密碼設定視窗
+
+   字型統一比照績效管理系統：
+   Noto Sans TC
 ========================================================= */
+
 #login-modal,
 #login-modal input,
-#login-modal button {
+#login-modal button,
+
+#password-modal,
+#password-modal input,
+#password-modal button {
     font-family:
         'Noto Sans TC',
         sans-serif;
+}
+
+
+/* =========================================================
+   權限與密碼設定密碼欄
+
+   比照績效管理系統：
+   取消 Inter 對密碼遮罩圓點造成的字型差異。
+========================================================= */
+
+#password-modal input[type="password"] {
+    font-family:
+        'Noto Sans TC',
+        sans-serif;
+
+    font-weight:
+        400;
+
+    letter-spacing:
+        normal;
+
+    color:
+        #000000;
 }
 
 /* =========================================================
@@ -248,26 +278,76 @@ html.fa-icons-ready #user-controls {
     min-height: 36px;
 }
 
+/* =========================================================
+   權限登入／登出系統／權限設定／儲存記錄
+
+   純圖示文字按鈕：
+   不顯示底色、外框、陰影與按壓框。
+
+   Hover 僅保留原本的圖示／文字顏色變化。
+========================================================= */
+
 .auth-action-btn {
-    height: 34px;
-    padding: 0 4px;
-    border: none;
-    background: transparent;
-    box-shadow: none;
-    border-radius: 8px;
+    height:
+        34px;
 
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
+    padding:
+        0 4px;
 
-    font-size: 12px;
-    font-weight: 900;
-    white-space: nowrap;
-    transition: all 0.18s ease;
+    border:
+        0 !important;
+
+    background:
+        transparent !important;
+
+    box-shadow:
+        none !important;
+
+    outline:
+        none !important;
+
+    display:
+        inline-flex;
+
+    align-items:
+        center;
+
+    gap:
+        5px;
+
+    font-size:
+        12px;
+
+    font-weight:
+        900;
+
+    white-space:
+        nowrap;
+
+    transition:
+        color 0.18s ease;
 }
 
-.auth-action-btn:hover {
-    background: rgba(255, 255, 255, 0.06);
+
+/* 所有互動狀態都不產生按鈕外框 */
+.auth-action-btn:hover,
+.auth-action-btn:focus,
+.auth-action-btn:focus-visible,
+.auth-action-btn:active {
+    border:
+        0 !important;
+
+    background:
+        transparent !important;
+
+    box-shadow:
+        none !important;
+
+    outline:
+        none !important;
+
+    transform:
+        none !important;
 }
 
 .auth-login-btn {
@@ -339,6 +419,199 @@ html.fa-icons-ready #user-controls {
 .cloud-center-entry-btn i,
 .cloud-center-entry-btn svg {
     color: #ffffff;
+}
+
+/* =========================================================
+   標準程序系統左側資料／平台按鈕
+
+   僅統一績效管理系統的：
+   1. 顏色變化
+   2. 字型
+   3. 字級
+   4. 字重
+
+   不修改既有：
+   寬高、padding、圓角、位置、權限及事件。
+========================================================= */
+
+
+/* ---------------------------------------------------------
+   匯出／載入／雲端中心／OSAI
+   四顆按鈕高度完全一致
+
+   Viewer / Editor / Admin 共用
+--------------------------------------------------------- */
+
+#export-db-btn,
+#import-db-btn,
+#cloud-preview-entry-btn,
+#osai-platform-btn {
+    height:
+        32px;
+
+    min-height:
+        32px;
+
+    max-height:
+        32px;
+
+    box-sizing:
+        border-box;
+}
+
+/* ---------------------------------------------------------
+   共用文字規格
+--------------------------------------------------------- */
+
+#import-db-btn,
+#cloud-preview-entry-btn,
+#osai-platform-btn,
+
+#export-db-btn:not(.action-locked) {
+    font-family:
+        'Noto Sans TC',
+        sans-serif;
+
+    font-size:
+        12px;
+
+    font-weight:
+        900;
+
+    line-height:
+        1;
+}
+
+
+/* ---------------------------------------------------------
+   匯出資料／載入資料
+   績效管理系統 Slate
+--------------------------------------------------------- */
+
+#export-db-btn:not(.action-locked),
+#import-db-btn {
+    background:
+        #334155;
+
+    color:
+        #e2e8f0;
+
+    border-color:
+        #334155;
+}
+
+
+@media (hover: hover)
+       and (pointer: fine) {
+
+    #export-db-btn:not(.action-locked):hover,
+    #import-db-btn:hover {
+        background:
+            #475569;
+
+        color:
+            #e2e8f0;
+
+        border-color:
+            #475569;
+    }
+
+}
+
+
+/* ---------------------------------------------------------
+   雲端中心
+   績效管理系統 Sky
+--------------------------------------------------------- */
+
+#cloud-preview-entry-btn {
+    background:
+        #0284c7;
+
+    color:
+        #ffffff;
+
+    border-color:
+        #0284c7;
+}
+
+
+@media (hover: hover)
+       and (pointer: fine) {
+
+    #cloud-preview-entry-btn:hover {
+        background:
+            #0369a1;
+
+        color:
+            #ffffff;
+
+        border-color:
+            #0369a1;
+    }
+
+}
+
+
+/* ---------------------------------------------------------
+   OSAI 智慧管理平台
+   績效管理系統 Indigo
+--------------------------------------------------------- */
+
+#osai-platform-btn {
+    background:
+        #4f46e5;
+
+    color:
+        #ffffff;
+
+    border-color:
+        #4f46e5;
+}
+
+
+@media (hover: hover)
+       and (pointer: fine) {
+
+    #osai-platform-btn:hover {
+        background:
+            #4338ca;
+
+        color:
+            #ffffff;
+
+        border-color:
+            #4338ca;
+    }
+
+}
+
+
+/* ---------------------------------------------------------
+   手機直式／橫式
+   績效管理系統基準字級 11px
+
+   不修改按鈕原本尺寸。
+--------------------------------------------------------- */
+
+@media screen and (max-width: 950px) {
+
+    #import-db-btn,
+    #cloud-preview-entry-btn,
+    #osai-platform-btn,
+
+    #export-db-btn:not(.action-locked) {
+        font-family:
+            'Noto Sans TC',
+            sans-serif;
+
+        font-size:
+            11px;
+
+        font-weight:
+            900;
+    }
+
 }
 
 /* =========================================================
@@ -554,6 +827,91 @@ html.fa-icons-ready #user-controls {
 
     will-change:
         transform;
+}
+
+/* =========================================================
+   雲端中心管理者垃圾桶
+
+   完全比照績效管理系統：
+   1. Font Awesome fa-trash
+   2. 12px
+   3. 平常 Slate 灰色
+   4. 桌機 Hover 只變紅
+   5. 無底色、外框、陰影
+========================================================= */
+
+.performance-trash-btn {
+    padding:
+        0 !important;
+
+    border:
+        0 !important;
+
+    background:
+        transparent !important;
+
+    box-shadow:
+        none !important;
+
+    display:
+        inline-flex;
+
+    align-items:
+        center;
+
+    justify-content:
+        center;
+
+    color:
+        #94a3b8;
+
+    transition:
+        color 0.18s ease !important;
+}
+
+
+/* 垃圾桶圖示 */
+.performance-trash-btn .fa-trash {
+    font-size:
+        12px !important;
+
+    line-height:
+        1 !important;
+
+    color:
+        #94a3b8;
+
+    transition:
+        color 0.18s ease !important;
+}
+
+
+/* 桌機 Hover：
+   僅垃圾桶由灰色轉紅 */
+@media (hover: hover)
+       and (pointer: fine) {
+
+    .performance-trash-btn:hover {
+        border:
+            0 !important;
+
+        background:
+            transparent !important;
+
+        box-shadow:
+            none !important;
+
+        transform:
+            none !important;
+    }
+
+
+    .performance-trash-btn:hover
+    .fa-trash {
+        color:
+            #dc2626 !important;
+    }
+
 }
 
 /* =========================================================
@@ -954,40 +1312,227 @@ html.fa-icons-ready #user-controls {
     grid-template-columns: minmax(0, 1fr);
 }        
 
+/* =========================================================
+   系統底部品牌資訊
+
+   比照績效管理系統：
+   1. 系統名稱／開發者左右排列
+   2. 整組水平置中
+   3. 分隔線橫跨兩欄
+   4. 桌機／手機直式／手機橫式皆保持置中
+
+   保留標準程序系統原本深色背景配色。
+========================================================= */
+
 .footer-brand {
-    width: 100%;
-    text-align: center;
-    padding-top: 22px;
-    padding-bottom: 12px;
+    width:
+        100%;
+
+    text-align:
+        center;
+
+    padding-top:
+        22px;
+
+    padding-bottom:
+        12px;
+
+    display:
+        grid;
+
+    grid-template-columns:
+        auto auto;
+
+    justify-content:
+        center;
+
+    align-items:
+        baseline;
+
+    column-gap:
+        72px;
 }
 
+
+/* 上方裝飾線 */
 .footer-line {
-    width: 180px;
-    height: 1px;
-    margin: 0 auto 14px auto;
-    background: linear-gradient(
-        to right,
-        transparent,
-        rgba(148,163,184,.7),
-        transparent
-    );
+    grid-column:
+        1 / -1;
+
+    justify-self:
+        center;
+
+    width:
+        180px;
+
+    height:
+        1px;
+
+    margin:
+        0 auto 14px auto;
+
+    background:
+        linear-gradient(
+            to right,
+            transparent,
+            rgba(148, 163, 184, 0.7),
+            transparent
+        );
 }
 
+
+/* 左側：系統名稱 */
 .footer-title {
-    color: #e2e8f0;
-    font-size: 11px;
-    letter-spacing: 0.18em;
-    font-weight: 500;
-    margin-bottom: 6px;
-    opacity: 0.92;
+    color:
+        #e2e8f0;
+
+    font-size:
+        11px;
+
+    letter-spacing:
+        0.18em;
+
+    font-weight:
+        500;
+
+    margin:
+        0;
+
+    opacity:
+        0.92;
+
+    white-space:
+        nowrap;
 }
 
+
+/* 右側：開發者 */
 .footer-dev {
-    color: #60a5fa;
-    font-size: 10px;
-    font-style: italic;
-    letter-spacing: 0.08em;
-    opacity: 0.95;
+    color:
+        #60a5fa;
+
+    font-size:
+        10px;
+
+    font-style:
+        italic;
+
+    letter-spacing:
+        0.08em;
+
+    margin:
+        0;
+
+    opacity:
+        0.95;
+
+    white-space:
+        nowrap;
+}
+
+
+/* =========================================================
+   手機直式
+
+   比照績效管理系統概念：
+   左右仍並排，但縮短兩欄距離。
+========================================================= */
+
+@media screen
+and (max-width: 768px)
+and (orientation: portrait) {
+
+    .footer-brand {
+        column-gap:
+            10px;
+
+        padding-left:
+            8px;
+
+        padding-right:
+            8px;
+    }
+
+
+    .footer-line {
+        width:
+            72px;
+
+        margin-bottom:
+            4px;
+    }
+
+
+    .footer-title {
+        font-size:
+            11px;
+
+        letter-spacing:
+            0.08em;
+    }
+
+
+    .footer-dev {
+        font-size:
+            10px;
+
+        letter-spacing:
+            0.06em;
+    }
+
+}
+
+
+/* =========================================================
+   手機橫式
+
+   保持左右排列及整組置中，
+   避免兩段文字離得太遠。
+========================================================= */
+
+@media screen
+and (orientation: landscape)
+and (max-height: 520px)
+and (max-width: 950px) {
+
+    .footer-brand {
+        column-gap:
+            10px;
+
+        padding-top:
+            8px;
+
+        padding-bottom:
+            calc(
+                8px +
+                env(safe-area-inset-bottom)
+            );
+    }
+
+
+    .footer-line {
+        display:
+            none;
+    }
+
+
+    .footer-title {
+        font-size:
+            11px;
+
+        letter-spacing:
+            0.08em;
+    }
+
+
+    .footer-dev {
+        font-size:
+            10px;
+
+        letter-spacing:
+            0.06em;
+    }
+
 }        
 
 .report-table {
@@ -1922,26 +2467,59 @@ main {
 </button>
 </div>
 
-<button
-    id="cloud-preview-entry-btn"
-    type="button"
-    onclick="
-        toggleMobileSidebar(false);
-        openCloudPreviewModal();
-    "
-    class="
-        db-action-btn
-        cloud-center-entry-btn
-    "
-    aria-label="雲端中心">
+<!-- 第二排：雲端中心／OSAI 平台 -->
+<div class="grid grid-cols-2 gap-2">
 
-    <i class="fas fa-cloud"
-       aria-hidden="true"></i>
+    <button
+        id="cloud-preview-entry-btn"
+        type="button"
+        onclick="
+            toggleMobileSidebar(false);
+            openCloudPreviewModal();
+        "
+        class="
+            db-action-btn
+            cloud-center-entry-btn
+        "
+        aria-label="雲端中心">
 
-    <span>
-        雲端中心
-    </span>
-</button>
+        <i
+            class="fas fa-cloud"
+            aria-hidden="true">
+        </i>
+
+        <span>
+            雲端中心
+        </span>
+
+    </button>
+
+
+    <button
+        id="osai-platform-btn"
+        type="button"
+        onclick="
+            toggleMobileSidebar(false);
+            openOsaiPlatform();
+        "
+        class="
+            db-action-btn
+            osai-platform-entry-btn
+        "
+        aria-label="切換至 OSAI 智慧管理平台">
+
+        <i
+            class="fas fa-layer-group"
+            aria-hidden="true">
+        </i>
+
+        <span>
+            OSAI 平台
+        </span>
+
+    </button>
+
+</div>
 
 <input type="file" id="import-file" class="hidden" accept=".json" onchange="importDB(event)">
                     </div>
@@ -2202,69 +2780,269 @@ main {
 
 <div id="password-modal"
      onclick="closePasswordModalOutside(event)"
-     class="fixed inset-0 modal-overlay hidden flex items-center justify-center z-[500] p-4">
+     class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[500] hidden flex items-center justify-center p-4">
+
     <div onclick="event.stopPropagation()"
-         class="bg-white w-full max-w-sm rounded-2xl shadow-2xl scale-in-center">
-        <div class="p-5">
+         class="
+            bg-white
+            w-full max-w-sm mx-3
+            rounded-2xl
+            shadow-2xl
+            border border-slate-200
+            overflow-hidden
+            max-h-[calc(100svh-24px)]
+            overflow-y-auto
+         ">
+
+        <div class="px-5 py-5">
+
+
+            <!-- =================================================
+                 標頭
+                 完全比照績效管理系統
+            ================================================== -->
+
             <div class="flex flex-col items-center text-center mb-3">
-                <div class="bg-yellow-50 p-2 rounded-full mb-2">
-                    <i data-lucide="key-round" class="w-6 h-6 text-yellow-600"></i>
+
+                <div class="bg-yellow-50 p-2 rounded-full mb-1.5">
+
+                    <i
+                        data-lucide="key-round"
+                        class="w-6 h-6 text-yellow-600">
+                    </i>
+
                 </div>
-                <h2 class="text-lg font-black text-slate-800">權限與密碼設定</h2>
-                <p class="text-xs text-slate-500 mt-1">僅管理者可修改密碼與使用者權限</p>
+
+
+                <p class="
+                    mt-1
+                    text-[11px]
+                    text-slate-500
+                    tracking-[0.14em]
+                    font-semibold
+                    mb-1.5
+                ">
+                    ACCESS SETTINGS
+                </p>
+
+
+                <h3 class="text-lg font-black text-slate-900">
+                    權限與密碼設定
+                </h3>
+
             </div>
 
+
+            <!-- =================================================
+                 設定內容
+            ================================================== -->
+
             <div class="space-y-2">
+
+
+                <!-- 目前管理者密碼 -->
                 <div>
-                    <label class="block text-xs font-bold text-slate-600 mb-1">目前管理者密碼</label>
-                    <input type="password" id="old-password"
-                           class="w-full px-4 py-2 bg-slate-100 border-none rounded-lg focus:ring-2 focus:ring-indigo-500 transition outline-none text-sm text-slate-900"
-                           placeholder="••••••">
+
+                    <label
+                        for="old-password"
+                        class="block text-xs font-bold text-slate-600 mb-1">
+                        目前管理者密碼
+                    </label>
+
+                    <input
+                        type="password"
+                        id="old-password"
+                        class="
+                            w-full
+                            px-4 py-2
+                            bg-slate-100
+                            border-none
+                            rounded-lg
+                            focus:ring-2
+                            focus:ring-indigo-500
+                            transition
+                            outline-none
+                            text-sm
+                        "
+                        placeholder="••••••"
+                        autocomplete="current-password">
+
                 </div>
 
+
+                <!-- 新管理者密碼 -->
                 <div>
-                    <label class="block text-xs font-bold text-slate-600 mb-1">新管理者密碼</label>
-                    <input type="password" id="new-admin-password"
-                           class="w-full px-4 py-2 bg-slate-100 border-none rounded-lg focus:ring-2 focus:ring-indigo-500 transition outline-none text-sm text-slate-900"
-                           placeholder="••••••">
+
+                    <label
+                        for="new-admin-password"
+                        class="block text-xs font-bold text-slate-600 mb-1">
+                        新管理者密碼
+                    </label>
+
+                    <input
+                        type="password"
+                        id="new-admin-password"
+                        class="
+                            w-full
+                            px-4 py-2
+                            bg-slate-100
+                            border-none
+                            rounded-lg
+                            focus:ring-2
+                            focus:ring-indigo-500
+                            transition
+                            outline-none
+                            text-sm
+                        "
+                        placeholder="••••••"
+                        autocomplete="new-password">
+
                 </div>
 
+
+                <!-- 新使用者密碼 -->
                 <div>
-                    <label class="block text-xs font-bold text-slate-600 mb-1">新使用者密碼</label>
-                    <input type="password" id="new-editor-password"
-                           onkeydown="if(event.key==='Enter') changeAdminPassword()"
-                           class="w-full px-4 py-2 bg-slate-100 border-none rounded-lg focus:ring-2 focus:ring-indigo-500 transition outline-none text-sm text-slate-900"
-                           placeholder="••••••">
+
+                    <label
+                        for="new-editor-password"
+                        class="block text-xs font-bold text-slate-600 mb-1">
+                        新使用者密碼
+                    </label>
+
+                    <input
+                        type="password"
+                        id="new-editor-password"
+                        onkeydown="
+                            if(event.key === 'Enter') {
+                                changeAdminPassword();
+                            }
+                        "
+                        class="
+                            w-full
+                            px-4 py-2
+                            bg-slate-100
+                            border-none
+                            rounded-lg
+                            focus:ring-2
+                            focus:ring-indigo-500
+                            transition
+                            outline-none
+                            text-sm
+                        "
+                        placeholder="••••••"
+                        autocomplete="new-password">
+
                 </div>
 
-<label class="flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2">
-    <input
-        type="checkbox"
-        id="editor-enabled-checkbox"
-        class="w-4 h-4 accent-indigo-600"
-        disabled
-    >
-    <span class="text-sm font-bold text-slate-700">
-        啟用使用者共用權限
-    </span>
-</label>
+
+                <!-- 使用者權限 -->
+                <label class="
+                    flex
+                    items-center
+                    gap-3
+                    bg-slate-50
+                    border
+                    border-slate-200
+                    rounded-xl
+                    px-3 py-2
+                ">
+
+                    <input
+                        type="checkbox"
+                        id="editor-enabled-checkbox"
+                        class="w-4 h-4 accent-indigo-600"
+                        disabled
+                    >
+
+                    <span class="text-sm font-bold text-slate-700">
+                        啟用使用者共用權限
+                    </span>
+
+                </label>
+
 
                 <p class="text-[11px] text-slate-400 leading-snug">
                     使用者權限可編輯、上傳附件、儲存、載入與匯出資料；刪除與權限設定仍限管理者。
                 </p>
 
-                <p id="pwd-change-error" class="hidden text-[11px] text-red-500 font-bold"></p>
 
-                <div class="flex gap-2 pt-1">
-                    <button onclick="changeAdminPassword()" class="flex-1 bg-indigo-600 text-white py-1.5 rounded-lg font-bold hover:bg-indigo-700 transition text-xs">儲存設定</button>
-                    <button onclick="toggleModal('password-modal', false)" class="flex-1 bg-slate-100 text-slate-600 py-1.5 rounded-lg font-bold hover:bg-slate-200 transition text-xs">取消</button>
+                <!-- =================================================
+                     底部操作
+                     比照績效管理系統：
+                     左取消／右儲存設定
+                ================================================== -->
+
+                <div class="flex space-x-2 pt-1">
+
+                    <button
+                        onclick="toggleModal('password-modal', false)"
+                        class="
+                            flex-1
+                            py-1.5
+                            bg-slate-100
+                            text-slate-600
+                            rounded-lg
+                            font-bold
+                            hover:bg-slate-200
+                            transition
+                            text-xs
+                        ">
+                        取消
+                    </button>
+
+
+                    <button
+                        onclick="changeAdminPassword()"
+                        class="
+                            flex-1
+                            py-1.5
+                            bg-indigo-600
+                            text-white
+                            rounded-lg
+                            font-bold
+                            hover:bg-indigo-700
+                            transition
+                            text-xs
+                            flex
+                            items-center
+                            justify-center
+                            gap-1.5
+                        ">
+
+                        <i
+                            class="fa-solid fa-floppy-disk"
+                            aria-hidden="true">
+                        </i>
+
+                        <span>
+                            儲存設定
+                        </span>
+
+                    </button>
+
                 </div>
-            </div>
-        </div>
-    </div>
-</div>
 
-<!-- 資料匯出 Modal -->
+
+                <!-- 錯誤訊息位置也比照績效系統 -->
+                <p
+                    id="pwd-change-error"
+                    class="
+                        text-center
+                        text-red-500
+                        text-[10px]
+                        font-bold
+                        hidden
+                    ">
+                </p>
+
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
 <div id="data-export-modal"
      onclick="closeDataExportModalOutside(event)"
      class="fixed inset-0 modal-overlay hidden flex items-center justify-center z-[520] p-4 no-print">
@@ -4701,6 +5479,42 @@ const appId = typeof __app_id !== 'undefined' ? __app_id : 'osspis-pro';
 const DEFAULT_ADMIN_PASSWORD = "admincore1098";
 const DEFAULT_EDITOR_PASSWORD = "teamuser001";
 const DEFAULT_EDITOR_ENABLED = true;
+
+
+/* =========================================================
+   OSAI 智慧管理平台
+   與績效管理系統使用相同開啟機制
+========================================================= */
+
+const OSAI_PLATFORM_URL =
+    'https://osai-core.vercel.app/';
+
+
+function openOsaiPlatform() {
+
+    const url =
+        String(
+            OSAI_PLATFORM_URL || ''
+        ).trim();
+
+
+    if (!url) {
+
+        alert(
+            '尚未設定 OSAI 管理平台網址。'
+        );
+
+        return;
+    }
+
+
+    window.open(
+        url,
+        'OSAI_PLATFORM',
+        'noopener,noreferrer'
+    );
+}
+
 
 const MASTER_RECOVERY_CODE = "SAM-SUN-CORE-RECOVERY";
 
@@ -9760,40 +10574,31 @@ ${toggleEnabledIconHtml}
         </button>
 
 
-        <!-- 永久刪除 -->
-        <button type="button"
-                data-preview-id="${previewId}"
-                data-preview-name="${previewName}"
-                onclick="deleteCloudPreviewFromButton(this)"
-                class="
-                    cloud-tooltip-btn
-                    w-7 h-7
-                    rounded-lg
-                    border border-red-100
-                    bg-red-50
-                    text-red-500
-                    hover:bg-red-100
-                    hover:border-red-200
-                    hover:text-red-600
-                    transition
-                    flex items-center
-                    justify-center
-                "
-                data-tooltip="刪除"
-                aria-label="刪除">
+<!-- 永久刪除 -->
+<button
+    type="button"
+    data-preview-id="${previewId}"
+    data-preview-name="${previewName}"
+    onclick="deleteCloudPreviewFromButton(this)"
+    class="
+        cloud-tooltip-btn
+        performance-trash-btn
+        w-7 h-7
+        rounded-lg
+        transition
+        flex
+        items-center
+        justify-center
+    "
+    data-tooltip="刪除"
+    aria-label="刪除">
 
-<svg viewBox="0 0 24 24"
-     class="w-[17px] h-[17px]"
-     aria-hidden="true">
+    <i
+        class="fa-solid fa-trash"
+        aria-hidden="true">
+    </i>
 
-    <path fill="currentColor"
-          d="M9 3.5h6l.8 1.7H20a1 1 0 1 1 0 2H4a1 1 0 0 1 0-2h4.2L9 3.5Z"></path>
-
-    <path fill="currentColor"
-          d="M6.2 8.7h11.6l-.8 10.1A2.5 2.5 0 0 1 14.5 21h-5a2.5 2.5 0 0 1-2.5-2.2L6.2 8.7Zm3.2 2.2a.8.8 0 0 0-.8.8l.3 5.6a.8.8 0 0 0 1.6-.1l-.3-5.6a.8.8 0 0 0-.8-.7Zm5.2 0a.8.8 0 0 0-.8.7l-.3 5.6a.8.8 0 1 0 1.6.1l.3-5.6a.8.8 0 0 0-.8-.8Z"></path>
-</svg>
-
-        </button>
+</button>
 
     </div>
 
@@ -15543,38 +16348,31 @@ return `
                                 </button>
 
 
-                                <!-- 永久刪除 -->
-                                <button
-                                    type="button"
-                                    data-workspace-id="${id}"
-                                    data-workspace-name="${name}"
-                                    onclick="deleteCloudWorkspaceFromButton(this)"
-                                    class="
-                                        cloud-tooltip-btn
-                                        w-7 h-7
-                                        rounded-lg
-                                        text-red-500
-                                        hover:text-red-600
-                                        transition
-                                        flex
-                                        items-center
-                                        justify-center
-                                    "
-                                    data-tooltip="刪除"
-                                    aria-label="刪除">
+<!-- 永久刪除 -->
+<button
+    type="button"
+    data-workspace-id="${id}"
+    data-workspace-name="${name}"
+    onclick="deleteCloudWorkspaceFromButton(this)"
+    class="
+        cloud-tooltip-btn
+        performance-trash-btn
+        w-7 h-7
+        rounded-lg
+        transition
+        flex
+        items-center
+        justify-center
+    "
+    data-tooltip="刪除"
+    aria-label="刪除">
 
-                                    <svg viewBox="0 0 24 24"
-                                         class="w-[17px] h-[17px]"
-                                         aria-hidden="true">
+    <i
+        class="fa-solid fa-trash"
+        aria-hidden="true">
+    </i>
 
-                                        <path fill="currentColor"
-                                              d="M9 3.5h6l.8 1.7H20a1 1 0 1 1 0 2H4a1 1 0 0 1 0-2h4.2L9 3.5Z"></path>
-
-                                        <path fill="currentColor"
-                                              d="M6.2 8.7h11.6l-.8 10.1A2.5 2.5 0 0 1 14.5 21h-5a2.5 2.5 0 0 1-2.5-2.2L6.2 8.7Zm3.2 2.2a.8.8 0 0 0-.8.8l.3 5.6a.8.8 0 0 0 1.6-.1l-.3-5.6a.8.8 0 0 0-.8-.7Zm5.2 0a.8.8 0 0 0-.8.7l-.3 5.6a.8.8 0 1 0 1.6.1l.3-5.6a.8.8 0 0 0-.8-.8Z"></path>
-                                    </svg>
-
-                                </button>
+</button>
                             `
                             : ''
                     }
@@ -21762,8 +22560,6 @@ function openDataExportModal() {
         );
 
 
-        openLoginModal();
-
         return;
     }
 
@@ -21904,8 +22700,6 @@ async function exportPreviewDB() {
             'error'
         );
 
-
-        openLoginModal();
 
         return;
     }
