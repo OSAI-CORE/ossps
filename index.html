@@ -1798,6 +1798,35 @@ and (max-width: 950px) {
     }
 }
 
+/* =========================================================
+   iPhone / iPad Safari 列印最佳化
+
+   目的：
+   讓 Safari 另存 PDF 的內容比例
+   接近桌機 Microsoft Print To PDF，
+   避免相同程序書由 1 頁變成 2 頁。
+========================================================= */
+
+@supports (-webkit-touch-callout: none) {
+
+    @media print {
+
+        .a4-container {
+            zoom: 0.85 !important;
+
+            width: 190mm !important;
+
+            margin-left: auto !important;
+            margin-right: auto !important;
+
+            transform: none !important;
+            transform-origin: top center !important;
+        }
+
+    }
+
+}
+
         .main-layout {
             display: grid;
             grid-template-columns: 350px 1fr;
