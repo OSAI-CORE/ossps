@@ -1,9 +1,5 @@
 const GEMINI_RETRYABLE_STATUS = new Set([
-  408,
-  500,
-  502,
-  503,
-  504
+  503
 ]);
 
 const GEMINI_MAX_RETRIES = 1;
@@ -358,26 +354,15 @@ for (
   } catch (fetchError) {
 
     /*
-     * 網路層暫時失敗：
-     * 第一次失敗時允許自動重試一次。
+     * 網路層錯誤不自動 Retry。
+     *
+     * Free Tier 每日 request 額度有限，
+     * 僅將自動 Retry 保留給 HTTP 503。
      */
-    if (attempt < GEMINI_MAX_RETRIES) {
-
-      const delay =
-        1000 +
-        Math.floor(
-          Math.random() * 500
-        );
-
-      console.warn(
-        `Gemini network error，${delay}ms 後進行第 1 次重試：`,
-        fetchError
-      );
-
-      await wait(delay);
-
-      continue;
-    }
+    console.error(
+      "Gemini network error:",
+      fetchError
+    );
 
     throw fetchError;
   }
@@ -411,15 +396,15 @@ for (
   }
 
 
-  /*
-   * 第一次遇到暫時性錯誤，
-   * 等待約 1～1.5 秒後只再試一次。
-   */
-  const delay =
-    1000 +
-    Math.floor(
-      Math.random() * 500
-    );
+/*
+ * 第一次遇到 HTTP 503 暫時性錯誤，
+ * 等待約 2.5～3.5 秒後只再試一次。
+ */
+const delay =
+  2500 +
+  Math.floor(
+    Math.random() * 1000
+  );
 
   console.warn(
     `Gemini 暫時性錯誤 HTTP ${response.status}，${delay}ms 後進行第 1 次重試。`
