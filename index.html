@@ -20437,7 +20437,7 @@ function openLoginModal() {
         function handleFileUpload(e) {
             if (!canUploadFile()) {
                 e.target.value = "";
-                return showToast("請先登入使用者或管理者權限後再上傳程序書檔案。", "error");
+                return showToast("請先登入權限後再上傳程序書檔案。", "error");
             }
 
             const file = e.target.files[0];
@@ -20492,7 +20492,7 @@ updateReportsDropdown();
         // 分類管理功能
         function addCategory() {
             if (!canManageCategory()) {
-                return showToast("請先登入使用者或管理者權限後再新增分類。", "error");
+                return showToast("請先登入權限後再新增分類。", "error");
             }
             const name = prompt("請輸入新分類名稱：");
             if (name && name.trim()) {
@@ -20507,7 +20507,7 @@ updateReportsDropdown();
 function editCategory() {
     if (!canManageCategory()) {
         return showToast(
-            "請先登入使用者或管理者權限後再修改分類。",
+            "請先登入權限後再修改分類。",
             "error"
         );
     }
@@ -21126,7 +21126,7 @@ if (saveBtn) {
 
 function toggleReportEditMode() {
     if (!canEditData()) {
-        showToast("請先登入使用者或管理者權限後再進入編輯模式。", "error");
+        showToast("請先登入權限後再進入編輯模式。", "error");
         return;
     }
 
@@ -21348,22 +21348,124 @@ if (permissionSettingsBtn) {
 }
 
 const aiBtn = document.getElementById('ai-generate-btn');
+
 if (aiBtn) {
     const locked = !canUseAI();
 
     /*
-     * 不使用 disabled，讓預覽者點擊時仍可觸發 generateAIReport()
-     * 再由 generateAIReport() 內部權限檢查阻擋，並顯示右下角提示。
-     * 這樣不會呼叫 /api/generate，也不會消耗 Gemini 額度。
+     * AI 按鈕仍保留點擊事件。
+     *
+     * 預覽者點擊時，
+     * 由 generateAIReport() 顯示權限提示，
+     * 不會呼叫 /api/generate，
+     * 也不會消耗 Gemini 額度。
      */
     aiBtn.disabled = false;
 
-    aiBtn.classList.toggle('action-locked', locked);
-    aiBtn.classList.toggle('opacity-50', locked);
-aiBtn.classList.remove('cursor-help');
-aiBtn.classList.toggle('cursor-pointer', !locked);
-aiBtn.classList.toggle('cursor-default', locked);
-aiBtn.removeAttribute('title');
+    aiBtn.classList.toggle(
+        'action-locked',
+        locked
+    );
+
+    aiBtn.classList.toggle(
+        'opacity-50',
+        locked
+    );
+
+    aiBtn.classList.remove(
+        'cursor-help'
+    );
+
+    aiBtn.classList.toggle(
+        'cursor-pointer',
+        !locked
+    );
+
+    aiBtn.classList.toggle(
+        'cursor-default',
+        locked
+    );
+
+    aiBtn.removeAttribute(
+        'title'
+    );
+}
+
+
+/*
+ * AI 作業名稱搜尋框權限。
+ *
+ * Viewer：
+ * 保留一般外觀與滑鼠箭頭，
+ * 但禁止實際輸入。
+ * 點擊搜尋框時顯示與 AI 按鈕相同的權限提示。
+ *
+ * Admin / Editor：
+ * 恢復正常輸入。
+ */
+const aiSearchInput =
+    document.getElementById(
+        'search-input'
+    );
+
+if (aiSearchInput) {
+
+    const locked =
+        !canUseAI();
+
+    /*
+     * 不使用 disabled，
+     * 改用 readOnly。
+     *
+     * 這樣 Viewer 無法修改內容，
+     * 但搜尋框仍可接收點擊事件。
+     */
+    aiSearchInput.disabled = false;
+    aiSearchInput.readOnly = locked;
+
+    /*
+     * 保留原本搜尋框提示文字。
+     */
+    aiSearchInput.placeholder =
+        '輸入作業名稱...';
+
+    /*
+     * Viewer 保留淡化效果，
+     * 但滑鼠維持一般箭頭，
+     * 不顯示禁止符號。
+     */
+    aiSearchInput.classList.toggle(
+        'opacity-50',
+        locked
+    );
+
+    aiSearchInput.classList.remove(
+        'cursor-not-allowed'
+    );
+
+    aiSearchInput.classList.toggle(
+        'cursor-default',
+        locked
+    );
+
+    /*
+     * Viewer 點擊搜尋框時，
+     * 顯示與 AI 產生按鈕相同的權限通知。
+     *
+     * Admin / Editor 則移除這個限制事件，
+     * 恢復正常輸入。
+     */
+    aiSearchInput.onclick =
+        locked
+            ? () => {
+                aiSearchInput.blur();
+
+                showToast(
+                    "請先登入權限後再使用 AI 產生標準程序。",
+                    "error"
+                );
+            }
+            : null;
 }
 
 if (!canEdit) {
@@ -21394,7 +21496,7 @@ initIcons();
 
 async function generateAIReport() {
     if (!canUseAI()) {
-        return showToast("請先登入使用者或管理者權限後再使用 AI 產生標準程序。", "error");
+        return showToast("請先登入權限後再使用 AI 產生標準程序。", "error");
     }
 
     if (isPreviewDataActive()) {
@@ -21794,7 +21896,7 @@ function updateSaveBtnText() {
 
 async function saveReport() {
     if (!canEditData()) {
-        return showToast("請先登入使用者或管理者權限後再儲存程序書。", "error");
+        return showToast("請先登入權限後再儲存程序書。", "error");
     }
 
     if (document.getElementById('file-preview-overlay').style.display === 'block') {
@@ -22852,7 +22954,7 @@ function openDataExportModal() {
     ) {
 
         showToast(
-            '請先登入使用者或管理者權限後再匯出資料。',
+            '請先登入權限後再匯出資料。',
             'error'
         );
 
@@ -22993,7 +23095,7 @@ async function exportPreviewDB() {
 
 
         showToast(
-            '請先登入使用者或管理者權限後再匯出資料。',
+            '請先登入權限後再匯出資料。',
             'error'
         );
 
@@ -23221,7 +23323,7 @@ async function exportDB() {
 
     if (!canExportData()) {
         showToast(
-            "請先登入使用者或管理者權限後再匯出資料。",
+            "請先登入權限後再匯出資料。",
             "error"
         );
 
