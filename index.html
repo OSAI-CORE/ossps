@@ -2057,12 +2057,12 @@ main {
         padding-right: 18px !important;
     }
 
-.top-action-bar {
-    left: var(--mobile-preview-left, 18px) !important;
-    right: auto !important;
-    width: var(--mobile-preview-width, calc(100vw - 36px)) !important;
-    height: 40px;
-}
+    .top-action-bar {
+        left: 18px !important;
+        right: 18px !important;
+        width: auto !important;
+        height: 40px;
+    }
 
     .sidebar-toggle {
         top: calc(env(safe-area-inset-top) + 10px);
@@ -23630,10 +23630,7 @@ function updateMobilePreviewScale() {
         preview.style.marginRight = '';
         preview.style.marginBottom = '';
 
-        document.documentElement.style.removeProperty('--mobile-preview-left');
-        document.documentElement.style.removeProperty('--mobile-preview-width');
-
-        return;
+return;
     }
 
     if (main) {
@@ -23648,28 +23645,23 @@ function updateMobilePreviewScale() {
          * offsetWidth 不受 transform 影響，所以不需要先清空 transform。
          * 這樣可避免畫面先跳回原始大小再縮回去。
          */
-        const previewWidth = Math.max(1, preview.offsetWidth);
-        const scale = Math.min(1.03, availableWidth / previewWidth);
+const previewWidth = Math.max(1, preview.offsetWidth);
+const scale = Math.min(1.03, availableWidth / previewWidth);
 
-        const scaledWidth = previewWidth * scale;
-        const moveX = Math.max(0, (window.innerWidth - scaledWidth) / 2 - sidePadding);
-
-        preview.style.transformOrigin = 'top left';
-        preview.style.transform = `translateX(${moveX}px) scale(${scale})`;
-        preview.style.marginLeft = '0';
-        preview.style.marginRight = '0';
+if (isLandscapePhone) {
+    preview.style.transformOrigin = 'top center';
+    preview.style.transform = `scale(${scale})`;
+    preview.style.marginLeft = 'auto';
+    preview.style.marginRight = 'auto';
+} else {
+    preview.style.transformOrigin = 'top left';
+    preview.style.transform = `scale(${scale})`;
+    preview.style.marginLeft = '0';
+    preview.style.marginRight = '0';
+}
 
         const scaledHeight = preview.offsetHeight * scale;
         preview.style.marginBottom = `${Math.max(24, scaledHeight * 0.02)}px`;
-
-        requestAnimationFrame(() => {
-            const rect = preview.getBoundingClientRect();
-
-            if (rect.width > 0) {
-                document.documentElement.style.setProperty('--mobile-preview-left', `${Math.max(0, rect.left)}px`);
-                document.documentElement.style.setProperty('--mobile-preview-width', `${rect.width}px`);
-            }
-        });
     });
 }
 
