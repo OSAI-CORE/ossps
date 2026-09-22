@@ -1801,11 +1801,13 @@ and (max-width: 950px) {
 /* =========================================================
    iPhone / iPad Safari 列印最佳化
 
-   Safari 原生列印對 CSS zoom 的處理
-   無法穩定比照桌機，因此不再使用 zoom。
+   重要：
+   外層列印畫布仍維持桌機正式基準 190mm，
+   避免 Safari 因內容寬度縮小後，
+   又自行執行 Fit-to-Page 放大。
 
-   改為直接將列印版面實際縮為桌機比例 85%，
-   讓 Safari 在分頁計算階段就使用縮小後尺寸。
+   僅將實際報表內容縮為 85%，
+   讓手機 Safari 最終比例接近桌機 PDF。
 ========================================================= */
 
 @supports (-webkit-touch-callout: none) {
@@ -1813,152 +1815,71 @@ and (max-width: 950px) {
     @media print {
 
         /*
-         * Tailwind 大量尺寸使用 rem，
-         * 將根字級同步縮為 85%。
-         */
-        html {
-            font-size: 13.6px !important;
-        }
-
-
-        /*
-         * 桌機列印內容寬度 190mm，
-         * Safari 實際改為 190 × 0.85 = 161.5mm。
+         * 外層列印畫布：
+         * 完全維持桌機正式列印基準。
+         *
+         * 不在這裡縮小，
+         * 避免 Safari 再自行放大。
          */
         .a4-container {
-            zoom: 1 !important;
-
-            width: 161.5mm !important;
+            width: 190mm !important;
 
             height: auto !important;
             min-height: auto !important;
 
+            padding: 0 !important;
+
             margin-left: auto !important;
             margin-right: auto !important;
 
-            padding: 0 !important;
+            box-shadow: none !important;
+
+            background: #ffffff !important;
+            color: #000000 !important;
+
+            overflow: visible !important;
 
             transform: none !important;
             transform-origin: top center !important;
 
-            overflow: visible !important;
+            zoom: 1 !important;
+
+            display: block !important;
         }
 
 
         /*
-         * 報表標頭間距同步縮為 85%。
+         * 真正需要縮小的是報表內容本身。
+         *
+         * 外層仍是 190mm，
+         * 因此 Safari 不會再用 Fit-to-Page
+         * 把這個 85% 抵銷掉。
+         *
+         * zoom 會同步縮小：
+         * 1. 字體
+         * 2. 表格
+         * 3. padding
+         * 4. 行距
+         * 5. 標題
+         * 6. 文件編號
+         * 7. 底部資料
+         *
+         * 比逐項修改更接近桌機的整體縮放方式。
          */
-        .report-header {
-            padding-bottom: 23.8px !important;
-        }
-
-
-        /*
-         * 英文副標。
-         */
-        .report-subtitle-en {
-            font-size: 9.35px !important;
-            margin-top: 5.1px !important;
-        }
-
-
-        /*
-         * 公司名稱／主標題。
-         */
-        h2 {
-            font-size: 22.1px !important;
-            line-height: 1.4 !important;
-            margin-bottom: 10.2px !important;
-        }
-
-        h3 {
-            font-size: 17px !important;
-            line-height: 1.4 !important;
-            margin-bottom: 8.5px !important;
-            letter-spacing: 0.12em !important;
-        }
-
-
-        /*
-         * 標題下方水平線。
-         */
-        #report-content-wrapper .h-1 {
-            height: 1.7px !important;
-        }
-
-
-        /*
-         * 表格本體同步縮為 85%。
-         */
-        .report-table {
+        #report-content-wrapper {
             width: 100% !important;
 
-            table-layout: fixed !important;
-            border-collapse: collapse !important;
+            zoom: 0.85 !important;
 
-            margin-bottom: 8.5mm !important;
-        }
+            margin-left: auto !important;
+            margin-right: auto !important;
 
+            padding-right: 0 !important;
 
-        .report-table th,
-        .report-table td {
-            border: 1px solid #000 !important;
+            overflow: visible !important;
 
-            font-size: 11.9px !important;
-            line-height: 1.8 !important;
-
-            padding:
-                10.2px
-                8.5px !important;
-
-            color: #000 !important;
-            background: white !important;
-
-            word-break: break-word !important;
-            white-space: normal !important;
-
-            vertical-align: middle !important;
-        }
-
-
-        .report-table th {
-            font-size: 12.75px !important;
-            font-weight: 700 !important;
-
-            text-align: center !important;
-
-            background: #e5e7eb !important;
-
-            letter-spacing: 0.04em !important;
-        }
-
-
-        /*
-         * 底部管理單位／製表人／日期。
-         */
-        #report-content-wrapper .grid.grid-cols-3 {
-            margin-top: 23.8px !important;
-            padding-top: 13.6px !important;
-
-            border-top:
-                1.7px solid #000 !important;
-        }
-
-
-        #footer-dept,
-        #footer-author,
-        #footer-date {
-            font-size: 10.2px !important;
-            color: #000 !important;
-        }
-
-
-        /*
-         * 文件編號也同步縮小，
-         * 避免它仍維持手機原始比例。
-         */
-        #document-code-wrapper {
-            font-size: 9.35px !important;
+            transform: none !important;
+            transform-origin: top center !important;
         }
 
     }
