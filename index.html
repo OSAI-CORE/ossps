@@ -2101,6 +2101,191 @@ and (max-width: 950px) {
         nowrap;
 }
 
+/* =========================================================
+   OSSPS｜手機 PDF 固定縮放控制
+
+   不放在 A4 內部，
+   避免跟著 report-preview 一起縮小。
+========================================================= */
+
+.mobile-pdf-zoom-controls {
+    display: none;
+
+    align-items: center;
+    justify-content: center;
+
+    gap: 3px;
+
+    height: 38px;
+
+    padding:
+        3px 5px;
+
+    box-sizing:
+        border-box;
+
+    border-radius:
+        12px;
+
+    background:
+        rgba(51, 65, 85, 0.96);
+
+    border:
+        1px solid
+        rgba(148, 163, 184, 0.32);
+
+    box-shadow:
+        0 4px 10px
+        rgba(15, 23, 42, 0.22);
+
+    pointer-events:
+        auto;
+}
+
+
+.mobile-pdf-zoom-controls.hidden {
+    display:
+        none !important;
+}
+
+
+.mobile-pdf-zoom-btn {
+    width:
+        30px;
+
+    height:
+        30px;
+
+    min-width:
+        30px;
+
+    padding:
+        0;
+
+    border:
+        0;
+
+    border-radius:
+        8px;
+
+    display:
+        inline-flex;
+
+    align-items:
+        center;
+
+    justify-content:
+        center;
+
+    background:
+        transparent;
+
+    color:
+        #f8fafc;
+
+    font-size:
+        12px;
+
+    cursor:
+        pointer;
+
+    touch-action:
+        manipulation;
+}
+
+
+.mobile-pdf-zoom-btn:active:not(:disabled) {
+    background:
+        rgba(255, 255, 255, 0.14);
+}
+
+
+.mobile-pdf-zoom-btn:disabled {
+    opacity:
+        0.32;
+
+    cursor:
+        default;
+}
+
+
+.mobile-pdf-zoom-label {
+    width:
+        42px;
+
+    text-align:
+        center;
+
+    color:
+        #f8fafc;
+
+    font-family:
+        'Noto Sans TC',
+        sans-serif;
+
+    font-size:
+        11px;
+
+    font-weight:
+        900;
+
+    white-space:
+        nowrap;
+
+    user-select:
+        none;
+}
+
+
+/*
+ * 手機直式／橫式才允許顯示。
+ */
+@media screen and (max-width: 768px),
+       screen and (orientation: landscape)
+       and (max-height: 520px)
+       and (max-width: 950px) {
+
+    #mobile-pdf-zoom-controls:not(.hidden) {
+        display:
+            inline-flex;
+    }
+
+}
+
+
+/*
+ * 手機直式：
+ * 避開左上角功能列開關。
+ */
+@media screen
+and (max-width: 768px)
+and (orientation: portrait) {
+
+    #mobile-pdf-zoom-controls {
+        margin-left:
+            56px;
+    }
+
+}
+
+
+/*
+ * 手機橫式。
+ */
+@media screen
+and (orientation: landscape)
+and (max-height: 520px)
+and (max-width: 950px) {
+
+    #mobile-pdf-zoom-controls {
+        margin-left:
+            52px;
+
+        height:
+            36px;
+    }
+
+}
 
 /* ---------------------------------------------------------
    PDF 多頁上下瀏覽區
@@ -2119,8 +2304,8 @@ and (max-width: 950px) {
     overflow-y:
         auto;
 
-    overflow-x:
-        hidden;
+overflow-x:
+    auto;
 
     box-sizing:
         border-box;
@@ -2137,13 +2322,16 @@ and (max-width: 950px) {
     overscroll-behavior:
         contain;
 
-    touch-action:
-        pan-y;
+touch-action:
+    pan-x pan-y;
 }
 
 
 #mobile-pdf-pages {
     width:
+        100%;
+
+    min-width:
         100%;
 
     display:
@@ -2152,8 +2340,12 @@ and (max-width: 950px) {
     flex-direction:
         column;
 
+    /*
+     * 小於容器時由 Canvas 的 auto margin 置中；
+     * 放大超出容器時則可正常往右捲動。
+     */
     align-items:
-        center;
+        flex-start;
 
     gap:
         12px;
@@ -2164,10 +2356,22 @@ and (max-width: 950px) {
     display:
         block;
 
+    /*
+     * 放大時允許超過 Viewer 寬度。
+     */
     max-width:
-        100%;
+        none;
 
     height:
+        auto;
+
+    flex:
+        0 0 auto;
+
+    margin-left:
+        auto;
+
+    margin-right:
         auto;
 
     background:
@@ -3116,6 +3320,39 @@ and (max-width: 950px) {
         <main class="relative overflow-y-auto px-8 pt-8 pb-16 flex flex-col bg-slate-900">
 <!-- 浮動動作列 -->
 <div class="no-print sticky top-0 mb-8 z-[60] top-action-bar flex justify-end items-center">
+
+    <!-- 手機 PDF：縮小 / 比例 / 放大 -->
+    <div
+        id="mobile-pdf-zoom-controls"
+        class="hidden mobile-pdf-zoom-controls"
+        aria-label="PDF 縮放控制">
+
+        <button
+            id="mobile-pdf-zoom-out-btn"
+            type="button"
+            class="mobile-pdf-zoom-btn"
+            onclick="changeMobilePdfZoom(-1)"
+            aria-label="縮小 PDF">
+            <i class="fa-solid fa-minus"></i>
+        </button>
+
+        <span
+            id="mobile-pdf-zoom-label"
+            class="mobile-pdf-zoom-label">
+            100%
+        </span>
+
+        <button
+            id="mobile-pdf-zoom-in-btn"
+            type="button"
+            class="mobile-pdf-zoom-btn"
+            onclick="changeMobilePdfZoom(1)"
+            aria-label="放大 PDF">
+            <i class="fa-solid fa-plus"></i>
+        </button>
+
+    </div>
+
 
     <!-- 右側：編輯 / 列印 / 返回 -->
     <div class="top-action-right flex items-center gap-2 sm:gap-3">
@@ -6137,6 +6374,28 @@ let mobilePdfLoadingTask =
 
 let mobilePdfRenderToken =
     0;
+
+
+/* =========================================================
+   手機 PDF 顯示縮放
+
+   僅改變 Canvas 顯示尺寸，
+   不重新 Render PDF。
+========================================================= */
+
+const MOBILE_PDF_ZOOM_LEVELS = [
+    0.80,
+    1.00,
+    1.25,
+    1.50
+];
+
+
+/*
+ * 預設 100%。
+ */
+let mobilePdfZoomIndex =
+    1;
 
 
 /* =========================================================
@@ -22100,6 +22359,14 @@ function clearMobilePdfPreview() {
     releaseMobilePdfResources();
 
 
+    /*
+     * 每次離開 PDF 或切換新 PDF，
+     * 顯示倍率回到 100%。
+     */
+    mobilePdfZoomIndex =
+        1;
+
+
     const mobileViewer =
         document.getElementById(
             'mobile-pdf-viewer'
@@ -22135,6 +22402,7 @@ function clearMobilePdfPreview() {
             '';
     }
 
+updateMobilePdfZoomControls();    
 
     if (scroll) {
 
@@ -22208,6 +22476,195 @@ async function getMobilePdfSource(
     };
 }
 
+/* =========================================================
+   OSSPS｜手機 PDF 顯示倍率控制
+
+   重點：
+   不重新呼叫 PDF.js render()。
+   只調整既有 Canvas 的 CSS width / height。
+========================================================= */
+
+
+/*
+ * 目前顯示倍率。
+ */
+function getMobilePdfZoomScale() {
+
+    return (
+        MOBILE_PDF_ZOOM_LEVELS[
+            mobilePdfZoomIndex
+        ] ||
+        1
+    );
+}
+
+
+/*
+ * 更新縮放控制列。
+ */
+function updateMobilePdfZoomControls() {
+
+    const controls =
+        document.getElementById(
+            'mobile-pdf-zoom-controls'
+        );
+
+    const zoomOutBtn =
+        document.getElementById(
+            'mobile-pdf-zoom-out-btn'
+        );
+
+    const zoomInBtn =
+        document.getElementById(
+            'mobile-pdf-zoom-in-btn'
+        );
+
+    const zoomLabel =
+        document.getElementById(
+            'mobile-pdf-zoom-label'
+        );
+
+    const mobileViewer =
+        document.getElementById(
+            'mobile-pdf-viewer'
+        );
+
+
+    if (!controls) {
+        return;
+    }
+
+
+    const shouldShow =
+        isMobilePdfPreviewLayout() &&
+        mobileViewer &&
+        !mobileViewer.classList.contains(
+            'hidden'
+        );
+
+
+    controls.classList.toggle(
+        'hidden',
+        !shouldShow
+    );
+
+
+    const scale =
+        getMobilePdfZoomScale();
+
+
+    if (zoomLabel) {
+
+        zoomLabel.textContent =
+            `${Math.round(
+                scale * 100
+            )}%`;
+    }
+
+
+    if (zoomOutBtn) {
+
+        zoomOutBtn.disabled =
+            mobilePdfZoomIndex <=
+            0;
+    }
+
+
+    if (zoomInBtn) {
+
+        zoomInBtn.disabled =
+            mobilePdfZoomIndex >=
+            MOBILE_PDF_ZOOM_LEVELS.length -
+            1;
+    }
+}
+
+
+/*
+ * 將目前倍率套用到
+ * 已經 Render 完成的 Canvas。
+ */
+function applyMobilePdfZoom() {
+
+    const scale =
+        getMobilePdfZoomScale();
+
+
+    const canvases =
+        document.querySelectorAll(
+            '#mobile-pdf-pages .mobile-pdf-page'
+        );
+
+
+    canvases.forEach(
+        canvas => {
+
+            const baseWidth =
+                Number(
+                    canvas.dataset.baseWidth
+                );
+
+            const baseHeight =
+                Number(
+                    canvas.dataset.baseHeight
+                );
+
+
+            if (
+                !baseWidth ||
+                !baseHeight
+            ) {
+                return;
+            }
+
+
+            canvas.style.width =
+                `${baseWidth * scale}px`;
+
+            canvas.style.height =
+                `${baseHeight * scale}px`;
+        }
+    );
+
+
+    updateMobilePdfZoomControls();
+}
+
+
+/*
+ * ＋ / － 按鈕。
+ */
+function changeMobilePdfZoom(
+    direction
+) {
+
+    const nextIndex =
+        Math.max(
+            0,
+            Math.min(
+                MOBILE_PDF_ZOOM_LEVELS.length -
+                    1,
+
+                mobilePdfZoomIndex +
+                    direction
+            )
+        );
+
+
+    if (
+        nextIndex ===
+        mobilePdfZoomIndex
+    ) {
+        return;
+    }
+
+
+    mobilePdfZoomIndex =
+        nextIndex;
+
+
+    applyMobilePdfZoom();
+}
 
 /*
  * 手機 PDF 多頁預覽。
@@ -22278,6 +22735,7 @@ async function renderMobilePdfPreview(
         'hidden'
     );
 
+updateMobilePdfZoomControls();    
 
     if (nameLabel) {
 
@@ -22477,11 +22935,38 @@ async function renderMobilePdfPreview(
                 );
 
 
-            canvas.style.width =
-                `${viewport.width}px`;
+/*
+ * 記錄 100% 時的基準尺寸。
+ *
+ * 後續 ＋ / － 只改 CSS 顯示尺寸，
+ * 不重新 Render Canvas。
+ */
+canvas.dataset.baseWidth =
+    String(
+        viewport.width
+    );
 
-            canvas.style.height =
-                `${viewport.height}px`;
+canvas.dataset.baseHeight =
+    String(
+        viewport.height
+    );
+
+
+const zoomScale =
+    getMobilePdfZoomScale();
+
+
+canvas.style.width =
+    `${
+        viewport.width *
+        zoomScale
+    }px`;
+
+canvas.style.height =
+    `${
+        viewport.height *
+        zoomScale
+    }px`;
 
 
             pages.appendChild(
@@ -22578,13 +23063,20 @@ async function renderMobilePdfPreview(
         releaseMobilePdfResources();
 
 
-        mobileViewer.classList.add(
-            'hidden'
-        );
+mobileViewer.classList.add(
+    'hidden'
+);
 
 
-        pages.innerHTML =
-            '';
+pages.innerHTML =
+    '';
+
+
+/*
+ * 已退回原始 iframe，
+ * 不再顯示手機 PDF 縮放工具。
+ */
+updateMobilePdfZoomControls();
 
 
         /*
@@ -24917,6 +25409,13 @@ function updateMobilePreviewScale() {
     const main = document.querySelector('main');
 
     if (!preview) return;
+
+
+    /*
+     * 手機直式／橫式切換時，
+     * 同步 PDF 縮放控制列顯示狀態。
+     */
+    updateMobilePdfZoomControls();
 
     const isPhoneLayout = window.matchMedia(
         '(max-width: 768px), (orientation: landscape) and (max-height: 520px) and (max-width: 950px)'
