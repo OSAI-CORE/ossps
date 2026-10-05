@@ -2438,6 +2438,18 @@ touch-action:
 and (max-width: 768px)
 and (orientation: portrait) {
 
+    /*
+     * 手機直式：
+     * 縮短上方操作列與白色程序書之間距離。
+     *
+     * 原本 main 為 72px，
+     * 改為 64px，約縮短 8px。
+     */
+    main {
+        padding-top:
+            64px !important;
+    }
+
     .sidebar-toggle {
         width: 44px !important;
         height: 44px !important;
