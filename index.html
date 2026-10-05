@@ -2640,8 +2640,18 @@ and (orientation: portrait) {
 }
 
 #report-preview {
+    /*
+     * 手機模式下清除 A4 基礎樣式 margin:auto
+     * 所留下來的上方自動間距。
+     *
+     * 否則 main 即使調整 padding-top，
+     * 程序書仍會被 margin-top:auto 往下推。
+     */
+    margin-top: 0 !important;
+
     margin-left: 0 !important;
     margin-right: 0 !important;
+
     align-self: flex-start;
 }
 
