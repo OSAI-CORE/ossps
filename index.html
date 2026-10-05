@@ -1501,6 +1501,16 @@ and (orientation: portrait) {
 
         padding-right:
             8px;
+
+        /*
+         * 手機版取消 HTML 的 mt-10，
+         * 讓品牌資訊靠近縮放後的白色程序書。
+         */
+        margin-top:
+            0 !important;
+
+        padding-top:
+            10px;
     }
 
 
@@ -1545,19 +1555,25 @@ and (orientation: landscape)
 and (max-height: 520px)
 and (max-width: 950px) {
 
-    .footer-brand {
-        column-gap:
-            10px;
+.footer-brand {
+    column-gap:
+        10px;
 
-        padding-top:
-            8px;
+    /*
+     * 手機橫式同樣取消 mt-10。
+     */
+    margin-top:
+        0 !important;
 
-        padding-bottom:
-            calc(
-                8px +
-                env(safe-area-inset-bottom)
-            );
-    }
+    padding-top:
+        8px;
+
+    padding-bottom:
+        calc(
+            8px +
+            env(safe-area-inset-bottom)
+        );
+}
 
 
     .footer-line {
@@ -2401,60 +2417,6 @@ touch-action:
 
     font-weight:
         700;
-}
-
-/* =========================================================
-   OSSPS｜手機一般程序書受控縮放
-
-   1. 不修改桌機
-   2. 不修改 A4 原始版型
-   3. 不修改列印
-   4. 禁止程序書內容區使用瀏覽器原生 pinch zoom
-   5. 保留單指上下／左右拖動
-========================================================= */
-
-@media screen and (max-width: 768px),
-       screen and (orientation: landscape)
-       and (max-height: 520px)
-       and (max-width: 950px) {
-
-    /*
-     * 一般程序書內容區：
-     * 允許單指水平／垂直拖動，
-     * 但不交給瀏覽器執行原生 pinch zoom。
-     */
-    #report-content-wrapper {
-        touch-action:
-            pan-x pan-y;
-    }
-
-
-    /*
-     * 只有放大到 125% 時，
-     * 才讓 A4 本體接管超出範圍的捲動。
-     */
-    #report-preview.mobile-report-zoom-in {
-        overflow:
-            auto !important;
-
-        overscroll-behavior:
-            contain;
-
-        -webkit-overflow-scrolling:
-            touch;
-    }
-
-
-    /*
-     * 125% 時讓放大後內容可以超出原位置，
-     * 再由上方 A4 容器負責左右／上下瀏覽。
-     */
-    #report-preview.mobile-report-zoom-in
-    #report-content-wrapper {
-        overflow:
-            visible !important;
-    }
-
 }
 
 /* 手機版左側功能列開關：桌機預設不顯示 */
@@ -3385,7 +3347,7 @@ and (max-width: 950px) {
             id="mobile-pdf-zoom-out-btn"
             type="button"
             class="mobile-pdf-zoom-btn"
-            onclick="changeMobilePreviewZoom(-1)"
+            onclick="changeMobilePdfZoom(-1)"
             aria-label="縮小 PDF">
             <i class="fa-solid fa-minus"></i>
         </button>
@@ -3400,7 +3362,7 @@ and (max-width: 950px) {
             id="mobile-pdf-zoom-in-btn"
             type="button"
             class="mobile-pdf-zoom-btn"
-            onclick="changeMobilePreviewZoom(1)"
+            onclick="changeMobilePdfZoom(1)"
             aria-label="放大 PDF">
             <i class="fa-solid fa-plus"></i>
         </button>
@@ -6451,26 +6413,7 @@ const MOBILE_PDF_ZOOM_LEVELS = [
 let mobilePdfZoomIndex =
     1;
 
-/* =========================================================
-   手機一般程序書顯示縮放
 
-   只調整程序書內容視覺倍率，
-   不修改 A4 原始尺寸、表格、字級及列印設定。
-========================================================= */
-
-const MOBILE_REPORT_ZOOM_LEVELS = [
-    0.80,
-    1.00,
-    1.25
-];
-
-
-/*
- * 一般程序書預設 100%。
- */
-let mobileReportZoomIndex =
-    1;
-    
 /* =========================================================
    工作階段防呆狀態
 ========================================================= */
@@ -20655,30 +20598,22 @@ function clearReportDisplayToBlank() {
         wordDownloadLink.onclick = null;
     }
 
-renderReport({
-    company: '',
-    mainTitle: '安全作業標準程序書',
-    documentCode: '',
-    type: '--',
-    method: '--',
-    name: '--',
-    tools: '--',
-    protective: '--',
-    footerDept: '',
-    footerAuthor: '',
-    footerDate: '',
-    steps: []
-});
+    renderReport({
+        company: '',
+        mainTitle: '安全作業標準程序書',
+        documentCode: '',
+        type: '--',
+        method: '--',
+        name: '--',
+        tools: '--',
+        protective: '--',
+        footerDept: '',
+        footerAuthor: '',
+        footerDate: '',
+        steps: []
+    });
 
-
-/*
- * 回到原始空白頁面時，
- * 一般程序書倍率恢復 100%。
- */
-resetMobileReportZoom();
-
-
-setCurrentDate();
+    setCurrentDate();
     updateSaveBtnText();
 }
 
@@ -22565,100 +22500,6 @@ async function getMobilePdfSource(
    只調整既有 Canvas 的 CSS width / height。
 ========================================================= */
 
-/* =========================================================
-   手機一般程序書縮放 Helper
-========================================================= */
-
-
-/*
- * 目前是否正在手機版顯示一般程序書。
- *
- * PDF / Word 附件開啟時回傳 false。
- */
-function isMobileReportPreviewActive() {
-
-    if (
-        !isMobilePdfPreviewLayout()
-    ) {
-        return false;
-    }
-
-
-    const fileOverlay =
-        document.getElementById(
-            'file-preview-overlay'
-        );
-
-    const reportWrapper =
-        document.getElementById(
-            'report-content-wrapper'
-        );
-
-
-    if (
-        !reportWrapper
-    ) {
-        return false;
-    }
-
-
-    if (
-        fileOverlay &&
-        fileOverlay.style.display ===
-            'block'
-    ) {
-        return false;
-    }
-
-
-    if (
-        reportWrapper.style.display ===
-            'none'
-    ) {
-        return false;
-    }
-
-
-    /*
-     * 空白初始頁面不顯示縮放工具。
-     */
-    return hasCurrentReportContent();
-}
-
-
-/*
- * 目前是否正在手機 PDF Viewer。
- */
-function isMobilePdfZoomActive() {
-
-    const mobileViewer =
-        document.getElementById(
-            'mobile-pdf-viewer'
-        );
-
-
-    return (
-        isMobilePdfPreviewLayout() &&
-        mobileViewer &&
-        !mobileViewer.classList.contains(
-            'hidden'
-        )
-    );
-}
-
-
-/*
- * 一般程序書目前倍率。
- */
-function getMobileReportZoomScale() {
-
-    return (
-        MOBILE_REPORT_ZOOM_LEVELS[
-            mobileReportZoomIndex
-        ] ||
-        1
-    );
-}
 
 /*
  * 目前顯示倍率。
@@ -22699,27 +22540,23 @@ function updateMobilePdfZoomControls() {
             'mobile-pdf-zoom-label'
         );
 
+    const mobileViewer =
+        document.getElementById(
+            'mobile-pdf-viewer'
+        );
+
 
     if (!controls) {
         return;
     }
 
 
-    const pdfActive =
-        isMobilePdfZoomActive();
-
-    const reportActive =
-        isMobileReportPreviewActive();
-
-
-    /*
-     * PDF 或一般程序書，
-     * 只要其中一個正在手機顯示，
-     * 就顯示同一組縮放工具。
-     */
     const shouldShow =
-        pdfActive ||
-        reportActive;
+        isMobilePdfPreviewLayout() &&
+        mobileViewer &&
+        !mobileViewer.classList.contains(
+            'hidden'
+        );
 
 
     controls.classList.toggle(
@@ -22728,47 +22565,8 @@ function updateMobilePdfZoomControls() {
     );
 
 
-    if (!shouldShow) {
-        return;
-    }
-
-
-    let scale =
-        1;
-
-    let currentIndex =
-        1;
-
-    let levels =
-        MOBILE_REPORT_ZOOM_LEVELS;
-
-
-    /*
-     * PDF 優先。
-     */
-    if (pdfActive) {
-
-        scale =
-            getMobilePdfZoomScale();
-
-        currentIndex =
-            mobilePdfZoomIndex;
-
-        levels =
-            MOBILE_PDF_ZOOM_LEVELS;
-
-
-    } else {
-
-        scale =
-            getMobileReportZoomScale();
-
-        currentIndex =
-            mobileReportZoomIndex;
-
-        levels =
-            MOBILE_REPORT_ZOOM_LEVELS;
-    }
+    const scale =
+        getMobilePdfZoomScale();
 
 
     if (zoomLabel) {
@@ -22783,7 +22581,7 @@ function updateMobilePdfZoomControls() {
     if (zoomOutBtn) {
 
         zoomOutBtn.disabled =
-            currentIndex <=
+            mobilePdfZoomIndex <=
             0;
     }
 
@@ -22791,8 +22589,8 @@ function updateMobilePdfZoomControls() {
     if (zoomInBtn) {
 
         zoomInBtn.disabled =
-            currentIndex >=
-            levels.length -
+            mobilePdfZoomIndex >=
+            MOBILE_PDF_ZOOM_LEVELS.length -
             1;
     }
 }
@@ -22882,255 +22680,6 @@ function changeMobilePdfZoom(
 
 
     applyMobilePdfZoom();
-}
-
-/* =========================================================
-   手機一般程序書縮放
-========================================================= */
-
-
-/*
- * 將目前倍率套用到一般程序書內容。
- *
- * 注意：
- * 不修改 A4 外框本身的手機 Fit-to-Width；
- * 只縮放內部 report-content-wrapper。
- */
-function applyMobileReportZoom() {
-
-    const preview =
-        document.getElementById(
-            'report-preview'
-        );
-
-    const reportWrapper =
-        document.getElementById(
-            'report-content-wrapper'
-        );
-
-
-    if (
-        !preview ||
-        !reportWrapper
-    ) {
-        return;
-    }
-
-
-    /*
-     * 非手機模式絕不保留手機縮放。
-     */
-    if (
-        !isMobilePdfPreviewLayout()
-    ) {
-
-        reportWrapper.style.transform =
-            '';
-
-        reportWrapper.style.transformOrigin =
-            '';
-
-        preview.classList.remove(
-            'mobile-report-zoom-in'
-        );
-
-        preview.scrollLeft =
-            0;
-
-        return;
-    }
-
-
-    const scale =
-        getMobileReportZoomScale();
-
-
-    /*
-     * 100%：
-     * 完全回到原本版面。
-     */
-    if (
-        scale ===
-        1
-    ) {
-
-        reportWrapper.style.transform =
-            '';
-
-        reportWrapper.style.transformOrigin =
-            '';
-
-        preview.classList.remove(
-            'mobile-report-zoom-in'
-        );
-
-        preview.scrollLeft =
-            0;
-
-
-    /*
-     * 125%：
-     * 從左上角放大，
-     * 方便往右拖動查看超出內容。
-     */
-    } else if (
-        scale >
-        1
-    ) {
-
-        reportWrapper.style.transformOrigin =
-            'top left';
-
-        reportWrapper.style.transform =
-            `scale(${scale})`;
-
-        preview.classList.add(
-            'mobile-report-zoom-in'
-        );
-
-        /*
-         * 每次改變倍率先回到最左側，
-         * 避免突然停在不可預期的位置。
-         */
-        preview.scrollLeft =
-            0;
-
-
-    /*
-     * 80%：
-     * 從上方中央縮小，
-     * 左右留白較平均。
-     */
-    } else {
-
-        reportWrapper.style.transformOrigin =
-            'top center';
-
-        reportWrapper.style.transform =
-            `scale(${scale})`;
-
-        preview.classList.remove(
-            'mobile-report-zoom-in'
-        );
-
-        preview.scrollLeft =
-            0;
-    }
-
-
-    updateMobilePdfZoomControls();
-}
-
-
-/*
- * 一般程序書 ＋ / －。
- */
-function changeMobileReportZoom(
-    direction
-) {
-
-    const nextIndex =
-        Math.max(
-            0,
-            Math.min(
-                MOBILE_REPORT_ZOOM_LEVELS.length -
-                    1,
-
-                mobileReportZoomIndex +
-                    direction
-            )
-        );
-
-
-    if (
-        nextIndex ===
-        mobileReportZoomIndex
-    ) {
-        return;
-    }
-
-
-    mobileReportZoomIndex =
-        nextIndex;
-
-
-    applyMobileReportZoom();
-}
-
-
-/*
- * PDF / 一般程序書共用的
- * 上方 ＋ / － 入口。
- */
-function changeMobilePreviewZoom(
-    direction
-) {
-
-    if (
-        isMobilePdfZoomActive()
-    ) {
-
-        changeMobilePdfZoom(
-            direction
-        );
-
-        return;
-    }
-
-
-    if (
-        isMobileReportPreviewActive()
-    ) {
-
-        changeMobileReportZoom(
-            direction
-        );
-    }
-}
-
-
-/*
- * 將一般程序書恢復 100%。
- */
-function resetMobileReportZoom() {
-
-    mobileReportZoomIndex =
-        1;
-
-
-    const preview =
-        document.getElementById(
-            'report-preview'
-        );
-
-    const reportWrapper =
-        document.getElementById(
-            'report-content-wrapper'
-        );
-
-
-    if (reportWrapper) {
-
-        reportWrapper.style.transform =
-            '';
-
-        reportWrapper.style.transformOrigin =
-            '';
-    }
-
-
-    if (preview) {
-
-        preview.classList.remove(
-            'mobile-report-zoom-in'
-        );
-
-        preview.scrollLeft =
-            0;
-    }
-
-
-    updateMobilePdfZoomControls();
 }
 
 /*
@@ -23572,13 +23121,6 @@ updateMobilePdfZoomControls();
 }
 
 function renderExternalFile(data) {
-
-    /*
-     * 從一般程序書切換附件時，
-     * 將程序書閱讀倍率恢復 100%。
-     */
-    resetMobileReportZoom();
-
 
     document.getElementById(
         'report-content-wrapper'
@@ -25879,329 +25421,92 @@ initIcons();
 }
 
 function updateMobilePreviewScale() {
+    const preview = document.getElementById('report-preview');
+    const main = document.querySelector('main');
 
-    const preview =
-        document.getElementById(
-            'report-preview'
-        );
-
-    const main =
-        document.querySelector(
-            'main'
-        );
-
-
-    if (!preview) {
-        return;
-    }
+    if (!preview) return;
 
 
     /*
      * 手機直式／橫式切換時，
-     * 同步 PDF／程序書共用縮放控制列。
+     * 同步 PDF 縮放控制列顯示狀態。
      */
     updateMobilePdfZoomControls();
 
+    const isPhoneLayout = window.matchMedia(
+        '(max-width: 768px), (orientation: landscape) and (max-height: 520px) and (max-width: 950px)'
+    ).matches;
 
-    const isPhoneLayout =
-        window.matchMedia(
-            '(max-width: 768px), ' +
-            '(orientation: landscape) ' +
-            'and (max-height: 520px) ' +
-            'and (max-width: 950px)'
-        ).matches;
-
-
-    const isLandscapePhone =
-        window.matchMedia(
-            '(orientation: landscape) ' +
-            'and (max-height: 520px) ' +
-            'and (max-width: 950px)'
-        ).matches;
-
+    const isLandscapePhone = window.matchMedia(
+        '(orientation: landscape) and (max-height: 520px) and (max-width: 950px)'
+    ).matches;
 
     /*
-     * 回到桌機時：
-     *
-     * 1. 清除手機程序書閱讀倍率
-     * 2. 清除手機專用 A4 transform
-     * 3. 完全恢復桌機原始版面
+     * 非手機版才清除手機縮放與定位。
+     * 手機版不要一開始就清空 transform，否則旋轉時會看到畫面跳動。
      */
     if (!isPhoneLayout) {
+        preview.style.transform = '';
+        preview.style.transformOrigin = '';
+        preview.style.marginLeft = '';
+        preview.style.marginRight = '';
+        preview.style.marginBottom = '';
 
-        resetMobileReportZoom();
-
-
-        preview.style.transform =
-            '';
-
-        preview.style.transformOrigin =
-            '';
-
-        preview.style.marginLeft =
-            '';
-
-        preview.style.marginRight =
-            '';
-
-        preview.style.marginBottom =
-            '';
-
-
-        return;
+return;
     }
-
-
-    /*
-     * 手機直式／橫式切換後，
-     * 保留目前一般程序書的
-     * 80% / 100% / 125% 閱讀倍率。
-     */
-    if (
-        isMobileReportPreviewActive()
-    ) {
-
-        applyMobileReportZoom();
-    }
-
 
     if (main) {
-
-        main.scrollLeft =
-            0;
+        main.scrollLeft = 0;
     }
 
+    requestAnimationFrame(() => {
+        const sidePadding = isLandscapePhone ? 18 : 12;
+        const availableWidth = Math.max(1, window.innerWidth - sidePadding * 2);
 
-    requestAnimationFrame(
-        () => {
+        /*
+         * offsetWidth 不受 transform 影響，所以不需要先清空 transform。
+         * 這樣可避免畫面先跳回原始大小再縮回去。
+         */
+const previewWidth = Math.max(1, preview.offsetWidth);
+const scale = Math.min(1.03, availableWidth / previewWidth);
 
-            const sidePadding =
-                isLandscapePhone
-                    ? 18
-                    : 12;
-
-
-            const availableWidth =
-                Math.max(
-                    1,
-                    window.innerWidth -
-                    sidePadding * 2
-                );
-
-
-            /*
-             * offsetWidth 不受 transform 影響，
-             * 因此不必先清空 transform。
-             *
-             * 可避免手機旋轉時，
-             * 畫面先跳回原尺寸再縮回去。
-             */
-            const previewWidth =
-                Math.max(
-                    1,
-                    preview.offsetWidth
-                );
-
-
-            const scale =
-                Math.min(
-                    1.03,
-                    availableWidth /
-                    previewWidth
-                );
-
-
-            if (
-                isLandscapePhone
-            ) {
-
-                preview.style
-                    .transformOrigin =
-                        'top center';
-
-
-                preview.style
-                    .transform =
-                        `scale(${scale})`;
-
-
-                preview.style
-                    .marginLeft =
-                        'auto';
-
-
-                preview.style
-                    .marginRight =
-                        'auto';
-
-
-            } else {
-
-                preview.style
-                    .transformOrigin =
-                        'top left';
-
-
-                preview.style
-                    .transform =
-                        `scale(${scale})`;
-
-
-                preview.style
-                    .marginLeft =
-                        '0';
-
-
-                preview.style
-                    .marginRight =
-                        '0';
-            }
-
-
-            const scaledHeight =
-                preview.offsetHeight *
-                scale;
-
-
-            preview.style
-                .marginBottom =
-                    `${
-                        Math.max(
-                            24,
-                            scaledHeight *
-                            0.02
-                        )
-                    }px`;
-        }
-    );
+if (isLandscapePhone) {
+    preview.style.transformOrigin = 'top center';
+    preview.style.transform = `scale(${scale})`;
+    preview.style.marginLeft = 'auto';
+    preview.style.marginRight = 'auto';
+} else {
+    preview.style.transformOrigin = 'top left';
+    preview.style.transform = `scale(${scale})`;
+    preview.style.marginLeft = '0';
+    preview.style.marginRight = '0';
 }
 
+/*
+ * 手機版 report-preview 使用 transform: scale() 後，
+ * 視覺高度雖然縮小，但原始排版高度仍然存在。
+ *
+ * 因此把縮放後多出的空白高度抵消掉，
+ * 讓下方品牌資訊緊接在白色程序書之後。
+ */
+const originalHeight =
+    preview.offsetHeight;
 
-/* =========================================================
-   手機一般程序書原生 Pinch Zoom 防護
+const scaledHeight =
+    originalHeight *
+    scale;
 
-   此函式必須獨立存在，
-   不可放進 updateMobilePreviewScale() 裡。
-
-   只阻止：
-   - 兩指 pinch
-   - Safari gesture zoom
-
-   完全不阻止：
-   - 單指上下滑
-   - 單指左右滑
-   - 點擊
-   - 編輯欄位
-========================================================= */
-
-function installMobileReportPinchGuard() {
-
-    const reportWrapper =
-        document.getElementById(
-            'report-content-wrapper'
-        );
-
-
-    /*
-     * 防止重複安裝事件。
-     */
-    if (
-        !reportWrapper ||
-        reportWrapper.dataset
-            .pinchGuardInstalled ===
-            '1'
-    ) {
-
-        return;
-    }
-
-
-    /*
-     * 一般 Touch Events：
-     *
-     * 一根手指：
-     * 完全不攔截。
-     *
-     * 兩根以上：
-     * 阻止瀏覽器原生 pinch zoom。
-     */
-    reportWrapper.addEventListener(
-        'touchmove',
-
-        event => {
-
-            if (
-                !isMobileReportPreviewActive()
-            ) {
-
-                return;
-            }
-
-
-            if (
-                event.touches &&
-                event.touches.length >
-                    1
-            ) {
-
-                event.preventDefault();
-            }
-        },
-
-        {
-            passive:
-                false
-        }
+const hiddenLayoutSpace =
+    Math.max(
+        0,
+        originalHeight -
+        scaledHeight
     );
 
 
-    /*
-     * iPhone / iPad Safari
-     * gesture zoom 額外防護。
-     */
-    const preventSafariGesture =
-        event => {
-
-            if (
-                isMobileReportPreviewActive()
-            ) {
-
-                event.preventDefault();
-            }
-        };
-
-
-    reportWrapper.addEventListener(
-        'gesturestart',
-
-        preventSafariGesture,
-
-        {
-            passive:
-                false
-        }
-    );
-
-
-    reportWrapper.addEventListener(
-        'gesturechange',
-
-        preventSafariGesture,
-
-        {
-            passive:
-                false
-        }
-    );
-
-
-    /*
-     * 標記已安裝，
-     * 避免再次綁定相同事件。
-     */
-    reportWrapper.dataset
-        .pinchGuardInstalled =
-            '1';
+preview.style.marginBottom =
+    `${-hiddenLayoutSpace}px`;
+    });
 }
 
         function showToast(msg, type = "success") {
@@ -26339,14 +25644,6 @@ document.addEventListener(
     }
 );
 window.addEventListener('load', () => {
-
-    /*
-     * 手機一般程序書：
-     * 啟用原生 pinch zoom 防護。
-     */
-    installMobileReportPinchGuard();
-
-
     initDB().then(() => {
         toggleAdmin(false);
         updateDataActionButtons();
