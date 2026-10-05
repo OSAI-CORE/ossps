@@ -194,6 +194,45 @@ html.fa-icons-ready #user-controls {
     visibility: visible;
 }
 
+/* =========================================================
+   OSSPS｜一般文字字型首次顯示最佳化
+
+   目的：
+   1. 避免 Inter / Noto Sans TC 尚未完成載入時，
+      先使用瀏覽器 fallback 字型顯示。
+   2. 避免 Google Fonts 完成後再次換字型，
+      造成英文副標題與下拉選單文字輕微抖動。
+   3. 只控制目前最明顯的三個位置，
+      不影響其他系統文字與版面。
+========================================================= */
+
+/*
+ * 英文副標題：
+ * 尚未完成字型載入前先保留位置，
+ * 但不顯示文字。
+ */
+html:not(.app-fonts-ready)
+#system-subtitle-en {
+    visibility:
+        hidden;
+}
+
+
+/*
+ * 兩個下拉選單：
+ * 保留輸入框本身、背景、外框與尺寸，
+ * 只暫時隱藏裡面的文字。
+ *
+ * 因此不會造成整個 select 消失後再跳出來。
+ */
+html:not(.app-fonts-ready)
+#category-select,
+html:not(.app-fonts-ready)
+#reports-dropdown {
+    color:
+        transparent !important;
+}
+
         /* 自定義左側滾動條樣式 */
         .custom-scrollbar::-webkit-scrollbar {
             width: 6px;
@@ -3107,6 +3146,108 @@ and (max-width: 950px) {
 </head>
 <body>
 
+<script>
+(function () {
+
+    /*
+     * OSSPS｜一般文字字型首次顯示最佳化
+     *
+     * 與既有 fa-icons-ready 分開管理：
+     *
+     * fa-icons-ready
+     * → Font Awesome 圖示字型
+     *
+     * app-fonts-ready
+     * → Inter / Noto Sans TC 一般介面文字
+     */
+
+    const root =
+        document.documentElement;
+
+
+    function showAppFonts() {
+
+        root.classList.add(
+            'app-fonts-ready'
+        );
+    }
+
+
+    /*
+     * 瀏覽器支援 Font Loading API 時，
+     * 明確等待目前實際使用的兩套字型。
+     */
+    if (
+        document.fonts &&
+        document.fonts.load
+    ) {
+
+        Promise.all([
+
+            /*
+             * 英文介面：
+             * Inter
+             */
+            document.fonts.load(
+                '400 1em "Inter"',
+                'Occupational Safety Standard Procedure System'
+            ),
+
+
+            /*
+             * 中文介面：
+             * Noto Sans TC
+             *
+             * 第二個參數直接使用目前
+             * 下拉選單實際會顯示的中文字，
+             * 讓瀏覽器載入對應中文字型資源。
+             */
+            document.fonts.load(
+                '400 1em "Noto Sans TC"',
+                '請先載入預覽資料'
+            )
+
+        ])
+        .then(
+            showAppFonts
+        )
+        .catch(
+            showAppFonts
+        );
+
+
+        /*
+         * 防呆：
+         *
+         * 即使 Google Fonts CDN、
+         * Font Loading API 或網路異常，
+         * 最多等待 1.5 秒仍正常顯示文字，
+         * 不讓畫面永久隱藏。
+         */
+        setTimeout(
+            showAppFonts,
+            1500
+        );
+
+
+    } else {
+
+        /*
+         * 舊瀏覽器不支援 Font Loading API 時，
+         * 至少等整個頁面載入完成後再顯示。
+         */
+        window.addEventListener(
+            'load',
+            showAppFonts,
+            {
+                once: true
+            }
+        );
+    }
+
+})();
+</script>    
+
     <!-- 手機版：左側功能列開關，不影響桌機與列印 -->
 <button
     id="mobile-sidebar-toggle"
@@ -3139,7 +3280,12 @@ and (max-width: 950px) {
                     </div>
                     <div>
                         <h1 class="text-base font-black leading-tight text-blue-400">職業安全標準程序系統</h1>
-                        <p class="text-[9px] text-slate-400 tracking-tight uppercase font-medium">Occupational Safety Standard Procedure System</p>
+                        <p
+    id="system-subtitle-en"
+    class="text-[9px] text-slate-400 tracking-tight uppercase font-medium"
+>
+    Occupational Safety Standard Procedure System
+</p>
                     </div>
                 </div>
             </div>
@@ -3205,9 +3351,9 @@ and (max-width: 950px) {
 </button>
                         </div>
                     </div>
-                    <select id="category-select" class="w-full bg-slate-800 border border-slate-700 rounded-lg py-3 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-white transition cursor-pointer" onchange="updateReportsDropdown()">
-                        <!-- 分類選項將由 JS 動態生成 -->
-                    </select>
+<select id="category-select" class="w-full bg-slate-800 border border-slate-700 rounded-lg py-3 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-white transition cursor-pointer" onchange="updateReportsDropdown()">
+    <option value="">-- 請先載入預覽資料 --</option>
+</select>
                     <input type="file" id="file-upload-input" class="hidden" accept=".pdf,.doc,.docx" onchange="handleFileUpload(event)">
                     <div id="drag-hint" class="hidden text-[10px] text-blue-400 text-center animate-pulse">拖放檔案於此處上傳...</div>
                 </div>
@@ -3219,7 +3365,7 @@ and (max-width: 950px) {
     <select id="reports-dropdown"
             class="w-full min-w-0 bg-slate-900 border border-slate-700 rounded-lg py-2.5 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-300 transition cursor-pointer disabled:opacity-50"
             onchange="handleDropdownSelection()">
-        <option value="">-- 請先選擇分類 --</option>
+        <option value="">-- 請先載入預覽資料 --</option>
     </select>
 
 <button
@@ -3437,7 +3583,20 @@ and (max-width: 950px) {
         onclick="resetReportToBlank()"
         class="report-reset-btn"
         aria-label="返回原始畫面">
-    <i data-lucide="rotate-ccw"></i>
+
+    <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true"
+    >
+        <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+        <path d="M3 3v5h5"></path>
+    </svg>
+
     <span>返回</span>
 </button>
 
