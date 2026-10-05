@@ -2438,18 +2438,6 @@ touch-action:
 and (max-width: 768px)
 and (orientation: portrait) {
 
-    /*
-     * 手機直式：
-     * 縮短上方操作列與白色程序書之間距離。
-     *
-     * 原本 main 為 72px，
-     * 改為 64px，約縮短 8px。
-     */
-    main {
-        padding-top:
-            60px !important;
-    }
-
     .sidebar-toggle {
         width: 44px !important;
         height: 44px !important;
@@ -2558,6 +2546,25 @@ main {
     overflow-x: hidden !important;
     align-items: flex-start;
     background: #0f172a !important;
+}
+
+/* =========================================================
+   手機直式：
+   縮短固定操作列與程序書白框之間距離
+
+   必須放在手機共用 main 設定之後，
+   才不會再次被 padding-top: 72px 覆蓋。
+========================================================= */
+
+@media screen
+and (max-width: 768px)
+and (orientation: portrait) {
+
+    main {
+        padding-top:
+            62px !important;
+    }
+
 }
 
 .top-action-bar {
