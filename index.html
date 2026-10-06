@@ -3838,8 +3838,9 @@ and (max-width: 950px) {
             </div>
 
             <!-- 登入按鈕 -->
-            <button onclick="verifyAdmin()"
-                    class="w-full h-11 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-black shadow-md shadow-indigo-500/20 transition flex items-center justify-center gap-2">
+<button id="admin-login-submit-btn"
+        onclick="verifyAdmin()"
+        class="w-full h-11 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-black shadow-md shadow-indigo-500/20 transition flex items-center justify-center gap-2">
                 <i data-lucide="log-in" class="w-4 h-4"></i>
                 登入驗證
             </button>
@@ -4010,24 +4011,28 @@ and (max-width: 950px) {
                 </div>
 
 
-                <!-- 使用者權限 -->
-                <label class="
-                    flex
-                    items-center
-                    gap-3
-                    bg-slate-50
-                    border
-                    border-slate-200
-                    rounded-xl
-                    px-3 py-2
-                ">
+<!-- 使用者權限 -->
+<label
+    id="editor-enabled-setting-row"
+    class="
+        flex
+        items-center
+        gap-3
+        bg-slate-50
+        border
+        border-slate-200
+        rounded-xl
+        px-3 py-2
+        invisible
+    "
+>
 
-                    <input
-                        type="checkbox"
-                        id="editor-enabled-checkbox"
-                        class="w-4 h-4 accent-indigo-600"
-                        disabled
-                    >
+    <input
+        type="checkbox"
+        id="editor-enabled-checkbox"
+        class="w-4 h-4 accent-indigo-600"
+        disabled
+    >
 
                     <span class="text-sm font-bold text-slate-700">
                         啟用使用者共用權限
@@ -6510,11 +6515,6 @@ gap-1.5">
 const apiKey = "";
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'osspis-pro';
 
-const DEFAULT_ADMIN_PASSWORD = "admincore1098";
-const DEFAULT_EDITOR_PASSWORD = "teamuser001";
-const DEFAULT_EDITOR_ENABLED = true;
-
-
 /* =========================================================
    OSAI 智慧管理平台
    與績效管理系統使用相同開啟機制
@@ -6549,16 +6549,9 @@ function openOsaiPlatform() {
     );
 }
 
-
-const MASTER_RECOVERY_CODE = "SAM-SUN-CORE-RECOVERY";
-
 let db;
 let isAdmin = false;
 let isEditor = false;
-
-let currentAdminPassword = DEFAULT_ADMIN_PASSWORD;
-let currentEditorPassword = DEFAULT_EDITOR_PASSWORD;
-let editorEnabled = DEFAULT_EDITOR_ENABLED;
 
 let currentLoadedReportId = null;
 let isReportEditMode = false;
@@ -6805,6 +6798,895 @@ const OSH_CLOUD_VIEW_FUNCTION =
 const OSH_CLOUD_WORKSPACE_FUNCTION =
     `${OSH_CLOUD_PROJECT_URL}/functions/v1/cloud-workspace`;
 
+/* =========================================================
+   OSAI Core｜中央系統權限
+========================================================= */
+
+const OSAI_SYSTEM_ACCESS_FUNCTION =
+    `${OSH_CLOUD_PROJECT_URL}/functions/v1/osai-system-access`;
+
+
+/*
+ * 標準程序系統中央權限識別碼。
+ */
+const OSAI_ACCESS_SYSTEM_TYPE =
+    'standard-procedure';
+
+
+/*
+ * 中央登入 Session：
+ * 僅存在目前頁面記憶體。
+ *
+ * 不寫入：
+ * localStorage
+ * sessionStorage
+ * IndexedDB
+ * JSON
+ * Cloud Workspace
+ */
+let osaiSystemAccessSession = {
+    token: '',
+    role: 'viewer',
+    expiresAt: 0
+};
+
+
+let isOsaiSystemAccessLoginPending =
+    false;
+
+let isOsaiSystemAccessSettingsPending =
+    false;
+
+let isOsaiSystemAccessSettingsReady =
+    false;
+
+
+/*
+ * 登入按鈕原始內容。
+ */
+let osaiSystemAccessLoginButtonOriginalHtml =
+    '';
+
+
+/*
+ * User Enabled 短期記憶體 Cache。
+ *
+ * 只存在目前頁面，
+ * 不包含密碼或 Hash。
+ */
+let osaiSystemAccessSettingsCache = {
+    editorEnabled: null,
+    fetchedAt: 0
+};
+
+
+let osaiSystemAccessSettingsFetchPromise =
+    null;
+
+
+const OSAI_SYSTEM_ACCESS_RETRY_DELAY_MS =
+    350;
+
+const OSAI_SYSTEM_ACCESS_FAST_REQUEST_TIMEOUT_MS =
+    8000;
+
+const OSAI_SYSTEM_ACCESS_REQUEST_TIMEOUT_MS =
+    15000;
+
+const OSAI_SYSTEM_ACCESS_SETTINGS_CACHE_MAX_AGE_MS =
+    60 * 1000;
+
+
+/* =========================================================
+   登入 Pending UI
+========================================================= */
+
+function setOsaiSystemAccessLoginPending(
+    pending
+) {
+
+    const isPending =
+        pending === true;
+
+    isOsaiSystemAccessLoginPending =
+        isPending;
+
+
+    const button =
+        document.getElementById(
+            'admin-login-submit-btn'
+        );
+
+
+    if (!button) {
+        return;
+    }
+
+
+    if (
+        !osaiSystemAccessLoginButtonOriginalHtml
+    ) {
+        osaiSystemAccessLoginButtonOriginalHtml =
+            button.innerHTML;
+    }
+
+
+    button.disabled =
+        isPending;
+
+
+    if (isPending) {
+
+        button.setAttribute(
+            'aria-busy',
+            'true'
+        );
+
+
+        button.innerHTML = `
+            <i
+                class="fas fa-spinner fa-spin text-sm"
+                aria-hidden="true">
+            </i>
+
+            <span>
+                驗證中...
+            </span>
+        `;
+
+
+    } else {
+
+        button.removeAttribute(
+            'aria-busy'
+        );
+
+
+        button.innerHTML =
+            osaiSystemAccessLoginButtonOriginalHtml;
+
+
+        initIcons();
+    }
+}
+
+
+/* =========================================================
+   共用工具
+========================================================= */
+
+function waitOsaiSystemAccess(
+    milliseconds
+) {
+
+    return new Promise(
+        resolve => {
+
+            setTimeout(
+                resolve,
+                milliseconds
+            );
+        }
+    );
+}
+
+
+function createOsaiSystemAccessError(
+    code,
+    status = 0
+) {
+
+    const error =
+        new Error(
+            String(
+                code ||
+                'ACCESS_SERVICE_ERROR'
+            )
+        );
+
+
+    error.code =
+        String(
+            code ||
+            'ACCESS_SERVICE_ERROR'
+        );
+
+
+    error.status =
+        Number(
+            status
+        ) || 0;
+
+
+    return error;
+}
+
+
+function isOsaiSystemAccessSessionError(
+    error
+) {
+
+    const code =
+        String(
+            error?.code ||
+            error?.message ||
+            ''
+        );
+
+
+    return [
+        'SYSTEM_SESSION_INVALID',
+        'SYSTEM_SESSION_EXPIRED',
+        'ADMIN_LOGIN_REQUIRED',
+        'ADMIN_PERMISSION_REQUIRED',
+        'SYSTEM_SESSION_MISMATCH'
+    ].includes(
+        code
+    );
+}
+
+
+function shouldRetryOsaiSystemAccessRequest(
+    error
+) {
+
+    const code =
+        String(
+            error?.code ||
+            error?.message ||
+            ''
+        );
+
+
+    const status =
+        Number(
+            error?.status
+        ) || 0;
+
+
+    if (
+        code ===
+            'ACCESS_SERVICE_TIMEOUT' ||
+        code ===
+            'ACCESS_SERVICE_UNAVAILABLE'
+    ) {
+        return true;
+    }
+
+
+    return (
+        status >= 500
+    );
+}
+
+
+/* =========================================================
+   Settings Cache
+========================================================= */
+
+function clearOsaiSystemAccessSettingsCache() {
+
+    osaiSystemAccessSettingsCache = {
+        editorEnabled: null,
+        fetchedAt: 0
+    };
+
+
+    osaiSystemAccessSettingsFetchPromise =
+        null;
+
+
+    isOsaiSystemAccessSettingsReady =
+        false;
+}
+
+
+function setOsaiSystemAccessSettingsCache(
+    settings
+) {
+
+    osaiSystemAccessSettingsCache = {
+
+        editorEnabled:
+            settings
+                ?.editor_enabled ===
+            true,
+
+        fetchedAt:
+            Date.now()
+    };
+}
+
+
+function hasFreshOsaiSystemAccessSettingsCache() {
+
+    return (
+
+        typeof
+            osaiSystemAccessSettingsCache
+                .editorEnabled ===
+        'boolean' &&
+
+        osaiSystemAccessSettingsCache
+            .fetchedAt >
+        0 &&
+
+        (
+            Date.now() -
+            osaiSystemAccessSettingsCache
+                .fetchedAt
+        ) <=
+        OSAI_SYSTEM_ACCESS_SETTINGS_CACHE_MAX_AGE_MS
+    );
+}
+
+
+/* =========================================================
+   中央 Session
+========================================================= */
+
+function clearOsaiSystemAccessSession() {
+
+    osaiSystemAccessSession = {
+        token: '',
+        role: 'viewer',
+        expiresAt: 0
+    };
+
+
+    clearOsaiSystemAccessSettingsCache();
+}
+
+
+function setOsaiSystemAccessSession(
+    data
+) {
+
+    const token =
+        String(
+            data?.session_token ||
+            ''
+        ).trim();
+
+
+    const role =
+        String(
+            data?.role ||
+            ''
+        ).trim();
+
+
+    const expiresIn =
+        Number(
+            data?.expires_in
+        ) || 0;
+
+
+    const systemType =
+        String(
+            data?.system_type ||
+            ''
+        ).trim();
+
+
+    if (
+        !token ||
+        ![
+            'admin',
+            'editor'
+        ].includes(role) ||
+        expiresIn <= 0 ||
+        systemType !==
+            OSAI_ACCESS_SYSTEM_TYPE
+    ) {
+
+        throw createOsaiSystemAccessError(
+            'ACCESS_SESSION_RESPONSE_INVALID'
+        );
+    }
+
+
+    /*
+     * 提前 30 秒視為過期，
+     * 避免剛送出設定請求時 Token 到期。
+     */
+    osaiSystemAccessSession = {
+
+        token,
+        role,
+
+        expiresAt:
+            Date.now() +
+            Math.max(
+                0,
+                expiresIn - 30
+            ) *
+            1000
+    };
+}
+
+
+function hasValidOsaiSystemAccessSession() {
+
+    return (
+
+        !!osaiSystemAccessSession
+            .token &&
+
+        osaiSystemAccessSession
+            .expiresAt >
+        Date.now()
+    );
+}
+
+
+/* =========================================================
+   Edge Function Request
+========================================================= */
+
+async function osaiSystemAccessRequest(
+    requestBody,
+    options = {}
+) {
+
+    const requiresSession =
+        options
+            ?.requiresSession ===
+        true;
+
+
+    const timeoutMs =
+        Math.max(
+            1000,
+            Number(
+                options
+                    ?.timeoutMs
+            ) ||
+            OSAI_SYSTEM_ACCESS_REQUEST_TIMEOUT_MS
+        );
+
+
+    const headers = {
+
+        apikey:
+            OSH_CLOUD_PUBLISHABLE_KEY,
+
+        'Content-Type':
+            'application/json'
+    };
+
+
+    if (requiresSession) {
+
+        if (
+            !hasValidOsaiSystemAccessSession()
+        ) {
+
+            clearOsaiSystemAccessSession();
+
+
+            throw createOsaiSystemAccessError(
+                'SYSTEM_SESSION_EXPIRED',
+                401
+            );
+        }
+
+
+        headers.Authorization =
+            `Bearer ${
+                osaiSystemAccessSession
+                    .token
+            }`;
+    }
+
+
+    const controller =
+        new AbortController();
+
+
+    const timeoutId =
+        setTimeout(
+            () => {
+                controller.abort();
+            },
+            timeoutMs
+        );
+
+
+    let response;
+
+
+    try {
+
+        response =
+            await fetch(
+                OSAI_SYSTEM_ACCESS_FUNCTION,
+                {
+                    method: 'POST',
+
+                    headers,
+
+                    signal:
+                        controller.signal,
+
+                    body:
+                        JSON.stringify(
+                            requestBody
+                        )
+                }
+            );
+
+
+    } catch (error) {
+
+        if (
+            error?.name ===
+            'AbortError'
+        ) {
+
+            throw createOsaiSystemAccessError(
+                'ACCESS_SERVICE_TIMEOUT'
+            );
+        }
+
+
+        throw createOsaiSystemAccessError(
+            'ACCESS_SERVICE_UNAVAILABLE'
+        );
+
+
+    } finally {
+
+        clearTimeout(
+            timeoutId
+        );
+    }
+
+
+    let data = {};
+
+
+    try {
+
+        data =
+            await response.json();
+
+    } catch (error) {
+
+        console.error(
+            '中央權限服務回應解析失敗：',
+            error
+        );
+    }
+
+
+    if (
+        !response.ok ||
+        data?.ok !== true
+    ) {
+
+        const accessError =
+            createOsaiSystemAccessError(
+
+                String(
+                    data?.error ||
+                    'ACCESS_SERVICE_ERROR'
+                ),
+
+                response.status
+            );
+
+
+        if (
+            isOsaiSystemAccessSessionError(
+                accessError
+            )
+        ) {
+
+            clearOsaiSystemAccessSession();
+        }
+
+
+        throw accessError;
+    }
+
+
+    return data;
+}
+
+
+/*
+ * Login / get-settings
+ * 僅在暫時性錯誤時重試一次。
+ *
+ * update-settings 不自動 Retry。
+ */
+async function osaiSystemAccessRequestWithRetry(
+    requestBody,
+    options = {}
+) {
+
+    let lastError =
+        null;
+
+
+    for (
+        let attempt = 1;
+        attempt <= 2;
+        attempt += 1
+    ) {
+
+        try {
+
+            return await osaiSystemAccessRequest(
+                requestBody,
+                {
+                    ...options,
+
+                    timeoutMs:
+                        options
+                            ?.timeoutMs ||
+                        OSAI_SYSTEM_ACCESS_FAST_REQUEST_TIMEOUT_MS
+                }
+            );
+
+
+        } catch (error) {
+
+            lastError =
+                error;
+
+
+            if (
+                !shouldRetryOsaiSystemAccessRequest(
+                    error
+                ) ||
+                attempt >= 2
+            ) {
+
+                throw error;
+            }
+
+
+            await waitOsaiSystemAccess(
+                OSAI_SYSTEM_ACCESS_RETRY_DELAY_MS
+            );
+        }
+    }
+
+
+    throw lastError;
+}
+
+
+/* =========================================================
+   Login / Settings
+========================================================= */
+
+async function osaiSystemAccessLogin(
+    password
+) {
+
+    clearOsaiSystemAccessSession();
+
+
+    const data =
+        await osaiSystemAccessRequestWithRetry(
+            {
+                action:
+                    'login',
+
+                system_type:
+                    OSAI_ACCESS_SYSTEM_TYPE,
+
+                password:
+                    String(
+                        password ||
+                        ''
+                    )
+            }
+        );
+
+
+    setOsaiSystemAccessSession(
+        data
+    );
+
+
+    /*
+     * Admin 登入後背景預抓 User Enabled。
+     *
+     * 目的：
+     * 使用者之後按下權限設定時，
+     * 可以直接使用正確狀態，
+     * 同時避免 checkbox 閃現。
+     */
+    if (
+        data?.role ===
+        'admin'
+    ) {
+
+        prefetchOsaiSystemAccessSettings();
+    }
+
+
+    return data;
+}
+
+
+async function osaiSystemAccessGetSettings() {
+
+    return await osaiSystemAccessRequestWithRetry(
+        {
+            action:
+                'get-settings',
+
+            system_type:
+                OSAI_ACCESS_SYSTEM_TYPE
+        },
+        {
+            requiresSession:
+                true
+        }
+    );
+}
+
+
+async function osaiSystemAccessUpdateSettings(
+    settings
+) {
+
+    return await osaiSystemAccessRequest(
+        {
+            action:
+                'update-settings',
+
+            system_type:
+                OSAI_ACCESS_SYSTEM_TYPE,
+
+            ...settings
+        },
+        {
+            requiresSession:
+                true
+        }
+    );
+}
+
+
+/* =========================================================
+   Settings Cache Refresh
+========================================================= */
+
+async function refreshOsaiSystemAccessSettingsCache() {
+
+    if (
+        osaiSystemAccessSettingsFetchPromise
+    ) {
+
+        return await
+            osaiSystemAccessSettingsFetchPromise;
+    }
+
+
+    osaiSystemAccessSettingsFetchPromise =
+        (
+            async () => {
+
+                const settings =
+                    await osaiSystemAccessGetSettings();
+
+
+                setOsaiSystemAccessSettingsCache(
+                    settings
+                );
+
+
+                return settings;
+            }
+        )();
+
+
+    try {
+
+        return await
+            osaiSystemAccessSettingsFetchPromise;
+
+
+    } finally {
+
+        osaiSystemAccessSettingsFetchPromise =
+            null;
+    }
+}
+
+
+function prefetchOsaiSystemAccessSettings() {
+
+    if (
+        !hasValidOsaiSystemAccessSession() ||
+        osaiSystemAccessSession.role !==
+            'admin'
+    ) {
+
+        return;
+    }
+
+
+    void refreshOsaiSystemAccessSettingsCache()
+        .catch(
+            () => {
+                /*
+                 * 背景預抓失敗不提示。
+                 * 正式開啟設定視窗時還會再讀一次。
+                 */
+            }
+        );
+}
+
+
+/* =========================================================
+   Edge Function Warm-up
+========================================================= */
+
+async function warmUpOsaiSystemAccessService() {
+
+    const controller =
+        new AbortController();
+
+
+    const timeoutId =
+        setTimeout(
+            () => {
+                controller.abort();
+            },
+            5000
+        );
+
+
+    try {
+
+        await fetch(
+            OSAI_SYSTEM_ACCESS_FUNCTION,
+            {
+                method: 'POST',
+
+                headers: {
+                    apikey:
+                        OSH_CLOUD_PUBLISHABLE_KEY,
+
+                    'Content-Type':
+                        'application/json'
+                },
+
+                signal:
+                    controller.signal,
+
+                body:
+                    JSON.stringify(
+                        {
+                            action:
+                                'health'
+                        }
+                    )
+            }
+        );
+
+
+    } catch (error) {
+
+        /*
+         * 預熱失敗不影響正式功能。
+         */
+
+
+    } finally {
+
+        clearTimeout(
+            timeoutId
+        );
+    }
+}    
 
 /* =========================================================
    Cloud Publisher Session
@@ -20584,17 +21466,15 @@ let standards = [];
 
 async function loadSettings() {
     /*
-     * 正式權限一律以目前 GitHub HTML
-     * 的 DEFAULT_* 設定為準。
+     * 權限與密碼已改由
+     * OSAI Core / Supabase 中央服務管理。
+     *
+     * 本機不載入、不保存：
+     * Admin 密碼
+     * User 密碼
+     * User Enabled
+     * 中央 Session
      */
-    currentAdminPassword =
-        DEFAULT_ADMIN_PASSWORD;
-
-    currentEditorPassword =
-        DEFAULT_EDITOR_PASSWORD;
-
-    editorEnabled =
-        DEFAULT_EDITOR_ENABLED;
 
     /*
      * 每次重新開啟系統，
@@ -21499,42 +22379,390 @@ function removeCategory() {
             if (dateEl) dateEl.innerText = dateStr;
         }
 
-        function toggleModal(id, show) {
-            const modal = document.getElementById(id);
-            if (!modal) return;
+function toggleModal(
+    id,
+    show
+) {
 
-            if (show && id === 'password-modal') {
-                if (!canChangePassword()) {
-                    showToast("請先以管理者身分登入，才可修改權限與密碼設定。", "error");
-                    return;
-                }
+    /*
+     * 權限設定視窗改由專用非同步流程處理。
+     */
+    if (
+        id ===
+        'password-modal'
+    ) {
 
-                document.getElementById('old-password').value = "";
-                document.getElementById('new-admin-password').value = "";
-                document.getElementById('new-editor-password').value = "";
-                document.getElementById(
-    'editor-enabled-checkbox'
-).checked = DEFAULT_EDITOR_ENABLED;
+        if (show) {
 
-                const err = document.getElementById('pwd-change-error');
-                if (err) {
-                    err.innerText = "";
-                    err.classList.add('hidden');
-                }
-            }
+            void openPermissionSettingsModal();
 
-            modal.classList.toggle('hidden', !show);
+        } else {
 
-            if(show && id === 'login-modal') {
-                const loginError = document.getElementById('login-error');
-                if (loginError) loginError.classList.add('hidden');
-                setTimeout(() => document.getElementById('admin-password').focus(), 100);
-            }
-
-            if(show && id === 'password-modal') {
-                setTimeout(() => document.getElementById('old-password').focus(), 100);
-            }
+            closePermissionSettingsModal();
         }
+
+        return;
+    }
+
+
+    const modal =
+        document.getElementById(
+            id
+        );
+
+
+    if (!modal) return;
+
+
+    modal.classList.toggle(
+        'hidden',
+        !show
+    );
+
+
+    if (
+        show &&
+        id ===
+            'login-modal'
+    ) {
+
+        const loginError =
+            document.getElementById(
+                'login-error'
+            );
+
+
+        loginError
+            ?.classList
+            .add(
+                'hidden'
+            );
+
+
+        setTimeout(
+            () => {
+
+                document
+                    .getElementById(
+                        'admin-password'
+                    )
+                    ?.focus();
+
+            },
+            100
+        );
+    }
+}
+
+async function openPermissionSettingsModal() {
+
+    if (
+        !canChangePassword()
+    ) {
+
+        showToast(
+            "只有管理者可以開啟權限與密碼設定。",
+            "error"
+        );
+
+        return;
+    }
+
+
+    if (
+        isOsaiSystemAccessSettingsPending
+    ) {
+        return;
+    }
+
+
+    const modal =
+        document.getElementById(
+            'password-modal'
+        );
+
+
+    const checkbox =
+        document.getElementById(
+            'editor-enabled-checkbox'
+        );
+
+
+    const settingRow =
+        document.getElementById(
+            'editor-enabled-setting-row'
+        );
+
+
+    document.getElementById(
+        'old-password'
+    ).value = '';
+
+
+    document.getElementById(
+        'new-admin-password'
+    ).value = '';
+
+
+    document.getElementById(
+        'new-editor-password'
+    ).value = '';
+
+
+    const errorElement =
+        document.getElementById(
+            'pwd-change-error'
+        );
+
+
+    if (errorElement) {
+
+        errorElement.innerText =
+            '';
+
+        errorElement.classList.add(
+            'hidden'
+        );
+    }
+
+
+    isOsaiSystemAccessSettingsReady =
+        false;
+
+
+    const hasFreshSettingsCache =
+        hasFreshOsaiSystemAccessSettingsCache();
+
+
+    /*
+     * =====================================================
+     * 防閃現核心
+     *
+     * 有 Cache：
+     * 先把 checked 寫正確，再顯示。
+     *
+     * 沒 Cache：
+     * 整列保持 invisible，
+     * 絕不讓 unchecked 狀態先露出來。
+     * =====================================================
+     */
+
+    if (
+        checkbox &&
+        hasFreshSettingsCache
+    ) {
+
+        checkbox.checked =
+            osaiSystemAccessSettingsCache
+                .editorEnabled;
+
+
+        checkbox.disabled =
+            false;
+
+
+        settingRow
+            ?.classList
+            .remove(
+                'invisible'
+            );
+
+
+        isOsaiSystemAccessSettingsReady =
+            true;
+
+
+    } else {
+
+        if (checkbox) {
+
+            checkbox.disabled =
+                true;
+        }
+
+
+        settingRow
+            ?.classList
+            .add(
+                'invisible'
+            );
+    }
+
+
+    /*
+     * 上面已經先決定 checkbox 顯示狀態，
+     * 現在才開啟 Modal。
+     */
+    modal
+        ?.classList
+        .remove(
+            'hidden'
+        );
+
+
+    isOsaiSystemAccessSettingsPending =
+        true;
+
+
+    try {
+
+        const settings =
+            await refreshOsaiSystemAccessSettingsCache();
+
+
+        if (checkbox) {
+
+            /*
+             * 一定先寫正式值。
+             */
+            checkbox.checked =
+                settings
+                    ?.editor_enabled ===
+                true;
+
+
+            checkbox.disabled =
+                false;
+
+
+            /*
+             * checked 完成後，
+             * 才解除 invisible。
+             */
+            settingRow
+                ?.classList
+                .remove(
+                    'invisible'
+                );
+        }
+
+
+        isOsaiSystemAccessSettingsReady =
+            true;
+
+
+    } catch (error) {
+
+        console.error(
+            '讀取中央權限設定失敗：',
+            error
+        );
+
+
+        /*
+         * 若完全沒有可用 Cache，
+         * 就繼續隱藏，避免顯示錯誤狀態。
+         */
+        if (
+            !hasFreshOsaiSystemAccessSettingsCache()
+        ) {
+
+            isOsaiSystemAccessSettingsReady =
+                false;
+
+
+            if (checkbox) {
+
+                checkbox.disabled =
+                    true;
+            }
+
+
+            settingRow
+                ?.classList
+                .add(
+                    'invisible'
+                );
+        }
+
+
+        if (
+            isOsaiSystemAccessSessionError(
+                error
+            )
+        ) {
+
+            showToast(
+                "權限驗證工作階段已失效，請先登出後重新登入。",
+                "warning"
+            );
+
+
+        } else {
+
+            showToast(
+                "權限設定服務暫時無法連線，請稍後再試。",
+                "error"
+            );
+        }
+
+
+    } finally {
+
+        isOsaiSystemAccessSettingsPending =
+            false;
+    }
+
+
+    setTimeout(
+        () => {
+
+            document
+                .getElementById(
+                    'old-password'
+                )
+                ?.focus();
+
+        },
+        100
+    );
+}
+
+
+function closePermissionSettingsModal() {
+
+    document
+        .getElementById(
+            'password-modal'
+        )
+        ?.classList
+        .add(
+            'hidden'
+        );
+
+
+    const checkbox =
+        document.getElementById(
+            'editor-enabled-checkbox'
+        );
+
+
+    if (checkbox) {
+
+        checkbox.disabled =
+            true;
+    }
+
+
+    /*
+     * 每次關閉後重新隱藏。
+     *
+     * 下次打開一定先設定 checked，
+     * 再顯示。
+     */
+    document
+        .getElementById(
+            'editor-enabled-setting-row'
+        )
+        ?.classList
+        .add(
+            'invisible'
+        );
+
+
+    isOsaiSystemAccessSettingsReady =
+        false;
+}
 
 function closeLoginModalOutside(
     event
@@ -21565,193 +22793,653 @@ function closePasswordModalOutside(event) {
 }
 
 async function verifyAdmin() {
-    const pwd = document.getElementById('admin-password').value;
-    const loginError = document.getElementById('login-error');
 
-    if (loginError) loginError.classList.add('hidden');
-
-if (pwd === MASTER_RECOVERY_CODE) {
-    currentAdminPassword =
-        DEFAULT_ADMIN_PASSWORD;
-
-    currentEditorPassword =
-        DEFAULT_EDITOR_PASSWORD;
-
-    editorEnabled =
-        DEFAULT_EDITOR_ENABLED;
-
-    isAdmin = false;
-    isEditor = false;
-
-    previewCategories = null;
-    previewStandards = null;
-
-    toggleAdmin(false);
-    toggleModal(
-        'login-modal',
-        false
-    );
-
-    document.getElementById(
-        'admin-password'
-    ).value = "";
-
-    showToast(
-        "權限設定已恢復預設值，請重新登入後再修改密碼。"
-    );
-
-    return;
-}
-
-    if (pwd === currentAdminPassword) {
-        isAdmin = true;
-        isEditor = true;
-        previewCategories = null;
-        previewStandards = null;
-
-        toggleAdmin(true);
-        toggleModal('login-modal', false);
-        showToast("管理者登入成功，已進入完整權限模式。");
-
-    } else if (editorEnabled && pwd === currentEditorPassword) {
-        isAdmin = false;
-        isEditor = true;
-        previewCategories = null;
-        previewStandards = null;
-
-        toggleAdmin(true);
-        toggleModal('login-modal', false);
-        showToast("使用者登入成功，已進入資料編輯模式。");
-
-    } else if (!editorEnabled && pwd === currentEditorPassword) {
-        showToast("使用者共用權限目前已停用，請洽管理者。", "error");
-
-    } else {
-        if (loginError) loginError.classList.remove('hidden');
-        showToast("驗證密碼錯誤", "error");
+    /*
+     * 防止按鈕或 Enter 重複送出。
+     */
+    if (
+        isOsaiSystemAccessLoginPending
+    ) {
+        return;
     }
 
-    document.getElementById('admin-password').value = "";
-}
 
-async function changeAdminPassword() {
-    const err =
+    const inputElement =
         document.getElementById(
-            'pwd-change-error'
+            'admin-password'
         );
 
-    if (err) {
-        err.innerText = "";
-        err.classList.add('hidden');
-    }
 
-    if (!canChangePassword()) {
-        if (err) {
-            err.innerText =
-                "請先以管理者登入";
+    const password =
+        String(
+            inputElement
+                ?.value ||
+            ''
+        );
 
-            err.classList.remove(
-                'hidden'
-            );
-        }
 
-        alert(
-            "只有管理者可以修改權限與密碼設定。"
+    const loginError =
+        document.getElementById(
+            'login-error'
+        );
+
+
+    loginError
+        ?.classList
+        .add(
+            'hidden'
+        );
+
+
+    if (!password) {
+
+        showToast(
+            "密碼錯誤，請重新輸入！",
+            "error"
         );
 
         return;
     }
 
-    const oldPwd =
-        document.getElementById(
-            'old-password'
-        ).value;
 
-    const newAdminPwd =
-        document.getElementById(
-            'new-admin-password'
-        ).value.trim();
-
-    const newEditorPwd =
-        document.getElementById(
-            'new-editor-password'
-        ).value.trim();
-
-    /*
-     * 只有修改管理者密碼時，
-     * 才驗證目前管理者密碼。
-     */
-    if (newAdminPwd) {
-        if (!oldPwd) {
-            if (err) {
-                err.innerText =
-                    "修改管理者密碼時，請先輸入目前管理者密碼";
-
-                err.classList.remove(
-                    'hidden'
-                );
-            }
-
-            return;
-        }
-
-        if (
-            oldPwd !==
-            currentAdminPassword
-        ) {
-            if (err) {
-                err.innerText =
-                    "目前管理者密碼不正確";
-
-                err.classList.remove(
-                    'hidden'
-                );
-            }
-
-            return;
-        }
-
-        /*
-         * 只修改目前工作階段。
-         */
-        currentAdminPassword =
-            newAdminPwd;
-    }
-
-    if (newEditorPwd) {
-        /*
-         * 只修改目前工作階段。
-         */
-        currentEditorPassword =
-            newEditorPwd;
-    }
-
-    /*
-     * 使用者正式啟用狀態
-     * 永遠以 GitHub HTML 為準。
-     */
-    editorEnabled =
-        DEFAULT_EDITOR_ENABLED;
-
-    toggleModal(
-        'password-modal',
-        false
+    setOsaiSystemAccessLoginPending(
+        true
     );
 
-    document.getElementById(
-        'old-password'
-    ).value = "";
 
-    document.getElementById(
-        'new-admin-password'
-    ).value = "";
+    /*
+     * 先讓 Spinner 畫面出來。
+     */
+    await new Promise(
+        resolve => {
 
-    document.getElementById(
-        'new-editor-password'
-    ).value = "";
+            requestAnimationFrame(
+                resolve
+            );
+        }
+    );
 
-    alert(
-        "權限與密碼設定已更新成功！"
+
+    let loginResult;
+
+
+    try {
+
+        loginResult =
+            await osaiSystemAccessLogin(
+                password
+            );
+
+
+    } catch (error) {
+
+        const code =
+            String(
+                error?.code ||
+                error?.message ||
+                ''
+            );
+
+
+        if (
+            code ===
+            'INVALID_CREDENTIALS'
+        ) {
+
+            loginError
+                ?.classList
+                .remove(
+                    'hidden'
+                );
+
+
+            showToast(
+                "密碼錯誤，請重新輸入！",
+                "error"
+            );
+
+
+        } else if (
+            code ===
+            'EDITOR_DISABLED'
+        ) {
+
+            showToast(
+                "使用者共用權限目前已停用，請洽管理者。",
+                "warning"
+            );
+
+
+        } else {
+
+            console.error(
+                '中央權限登入失敗：',
+                error
+            );
+
+
+            showToast(
+                "權限驗證服務暫時無法連線，請稍後再試。",
+                "error"
+            );
+        }
+
+
+        if (inputElement) {
+
+            inputElement.value =
+                '';
+        }
+
+
+        return;
+
+
+    } finally {
+
+        if (!loginResult) {
+
+            setOsaiSystemAccessLoginPending(
+                false
+            );
+        }
+    }
+
+
+    /*
+     * Admin
+     */
+    if (
+        loginResult
+            ?.role ===
+        'admin'
+    ) {
+
+        isAdmin =
+            true;
+
+        isEditor =
+            true;
+
+
+    /*
+     * User
+     */
+    } else if (
+        loginResult
+            ?.role ===
+        'editor'
+    ) {
+
+        isAdmin =
+            false;
+
+        isEditor =
+            true;
+
+
+    } else {
+
+        clearOsaiSystemAccessSession();
+
+
+        showToast(
+            "權限驗證服務回應異常，請稍後再試。",
+            "error"
+        );
+
+
+        setOsaiSystemAccessLoginPending(
+            false
+        );
+
+        return;
+    }
+
+
+    /*
+     * 登入成功後退出 Viewer Preview。
+     */
+    previewCategories =
+        null;
+
+    previewStandards =
+        null;
+
+
+    try {
+
+        toggleAdmin(
+            true
+        );
+
+
+        toggleModal(
+            'login-modal',
+            false
+        );
+
+
+        if (
+            loginResult.role ===
+            'admin'
+        ) {
+
+            showToast(
+                "管理者登入成功，已進入完整權限模式。"
+            );
+
+
+        } else {
+
+            showToast(
+                "使用者登入成功，已進入資料編輯模式。"
+            );
+        }
+
+
+        if (inputElement) {
+
+            inputElement.value =
+                '';
+        }
+
+
+    } finally {
+
+        /*
+         * 先關掉 Login Modal，
+         * 最後才恢復原按鈕，
+         * 避免登入成功瞬間圖示閃回。
+         */
+        setOsaiSystemAccessLoginPending(
+            false
+        );
+    }
+}
+
+async function changeAdminPassword() {
+
+    const err =
+        document.getElementById(
+            'pwd-change-error'
+        );
+
+
+    const setError =
+        message => {
+
+            if (!err) return;
+
+
+            err.innerText =
+                message || '';
+
+
+            err.classList.toggle(
+                'hidden',
+                !message
+            );
+        };
+
+
+    setError(
+        ''
+    );
+
+
+    if (
+        !canChangePassword()
+    ) {
+
+        setError(
+            "請先以管理者登入"
+        );
+
+
+        showToast(
+            "只有管理者可以修改權限與密碼設定。",
+            "error"
+        );
+
+        return;
+    }
+
+
+    /*
+     * User Enabled 還沒完成讀取時，
+     * 絕對不能送 update-settings。
+     */
+    if (
+        isOsaiSystemAccessSettingsPending ||
+        !isOsaiSystemAccessSettingsReady
+    ) {
+
+        showToast(
+            "權限設定仍在讀取中，請稍候。",
+            "warning"
+        );
+
+        return;
+    }
+
+
+    const oldPasswordInput =
+        document.getElementById(
+            'old-password'
+        );
+
+
+    const newAdminPasswordInput =
+        document.getElementById(
+            'new-admin-password'
+        );
+
+
+    const newEditorPasswordInput =
+        document.getElementById(
+            'new-editor-password'
+        );
+
+
+    const editorEnabledCheckbox =
+        document.getElementById(
+            'editor-enabled-checkbox'
+        );
+
+
+    const oldPassword =
+        String(
+            oldPasswordInput
+                ?.value ||
+            ''
+        );
+
+
+    const newAdminPassword =
+        String(
+            newAdminPasswordInput
+                ?.value ||
+            ''
+        ).trim();
+
+
+    const newEditorPassword =
+        String(
+            newEditorPasswordInput
+                ?.value ||
+            ''
+        ).trim();
+
+
+    /*
+     * 只有修改 Admin 密碼，
+     * 才要求輸入目前 Admin 密碼。
+     */
+    if (
+        newAdminPassword &&
+        !oldPassword
+    ) {
+
+        setError(
+            "修改管理者密碼時，請先輸入目前管理者密碼"
+        );
+
+        return;
+    }
+
+
+    /*
+     * editor_enabled
+     * 只屬於 standard-procedure。
+     *
+     * Admin / User 密碼則是中央共用。
+     */
+    const updatePayload = {
+
+        editor_enabled:
+            editorEnabledCheckbox
+                ?.checked ===
+            true
+    };
+
+
+    if (
+        newAdminPassword
+    ) {
+
+        updatePayload.current_admin_password =
+            oldPassword;
+
+
+        updatePayload.new_admin_password =
+            newAdminPassword;
+    }
+
+
+    if (
+        newEditorPassword
+    ) {
+
+        updatePayload.new_editor_password =
+            newEditorPassword;
+    }
+
+
+    isOsaiSystemAccessSettingsPending =
+        true;
+
+
+    let updateResult;
+
+
+    try {
+
+        /*
+         * update-settings 不做自動 Retry，
+         * 避免密碼修改被送出兩次。
+         */
+        updateResult =
+            await osaiSystemAccessUpdateSettings(
+                updatePayload
+            );
+
+
+    } catch (error) {
+
+        const code =
+            String(
+                error?.code ||
+                error?.message ||
+                ''
+            );
+
+
+        if (
+            code ===
+            'CURRENT_ADMIN_PASSWORD_INVALID'
+        ) {
+
+            setError(
+                "目前管理者密碼不正確"
+            );
+
+
+        } else if (
+            code ===
+            'CURRENT_ADMIN_PASSWORD_REQUIRED'
+        ) {
+
+            setError(
+                "修改管理者密碼時，請先輸入目前管理者密碼"
+            );
+
+
+        } else if (
+            code ===
+            'PASSWORD_TOO_SHORT'
+        ) {
+
+            setError(
+                "新密碼至少需要 8 個字元"
+            );
+
+
+        } else if (
+            code ===
+            'PASSWORD_TOO_LONG'
+        ) {
+
+            setError(
+                "新密碼長度超過允許範圍"
+            );
+
+
+        } else if (
+            isOsaiSystemAccessSessionError(
+                error
+            )
+        ) {
+
+            showToast(
+                "權限驗證工作階段已失效，請先登出後重新登入。",
+                "warning"
+            );
+
+
+        } else {
+
+            console.error(
+                '更新中央權限設定失敗：',
+                error
+            );
+
+
+            showToast(
+                "權限與密碼設定更新失敗，請稍後再試。",
+                "error"
+            );
+        }
+
+
+        return;
+
+
+    } finally {
+
+        isOsaiSystemAccessSettingsPending =
+            false;
+    }
+
+
+    /*
+     * Backend 回傳的值才是正式值。
+     */
+    if (
+        editorEnabledCheckbox
+    ) {
+
+        editorEnabledCheckbox.checked =
+            updateResult
+                ?.editor_enabled ===
+            true;
+    }
+
+
+    setOsaiSystemAccessSettingsCache(
+        updateResult
+    );
+
+
+    isOsaiSystemAccessSettingsReady =
+        true;
+
+
+    /*
+     * 如果修改了 Admin 密碼，
+     * Backend 會讓原 Session 失效。
+     *
+     * 自動使用新 Admin 密碼
+     * 建立新的 Session，
+     * 讓操作習慣跟前三套系統一致。
+     */
+    if (
+        updateResult
+            ?.requires_relogin ===
+        true &&
+        newAdminPassword
+    ) {
+
+        try {
+
+            const refreshedLogin =
+                await osaiSystemAccessLogin(
+                    newAdminPassword
+                );
+
+
+            if (
+                refreshedLogin
+                    ?.role !==
+                'admin'
+            ) {
+
+                throw createOsaiSystemAccessError(
+                    'ADMIN_SESSION_REFRESH_FAILED'
+                );
+            }
+
+
+        } catch (error) {
+
+            console.error(
+                '重新建立管理者 Session 失敗：',
+                error
+            );
+
+
+            toggleAdmin(
+                false
+            );
+
+
+            showToast(
+                "權限與密碼設定已更新，請使用新管理者密碼重新登入。",
+                "success"
+            );
+
+            return;
+        }
+    }
+
+
+    if (oldPasswordInput) {
+
+        oldPasswordInput.value =
+            '';
+    }
+
+
+    if (newAdminPasswordInput) {
+
+        newAdminPasswordInput.value =
+            '';
+    }
+
+
+    if (newEditorPasswordInput) {
+
+        newEditorPasswordInput.value =
+            '';
+    }
+
+
+    closePermissionSettingsModal();
+
+
+    showToast(
+        "權限與密碼設定已更新。",
+        "success"
     );
 }
 
@@ -22013,17 +23701,14 @@ clearCloudPublisherSession();
  */
 clearActiveCloudWorkspace();
 
-    /*
-     * 登出後恢復 GitHub HTML 正式權限。
-     */
-    currentAdminPassword =
-        DEFAULT_ADMIN_PASSWORD;
-
-    currentEditorPassword =
-        DEFAULT_EDITOR_PASSWORD;
-
-    editorEnabled =
-        DEFAULT_EDITOR_ENABLED;
+/*
+ * 登出／初始化時，
+ * 清除 OSAI Core 中央權限 Session。
+ *
+ * 密碼與 User Enabled
+ * 均不在前端保存。
+ */
+clearOsaiSystemAccessSession();
 
     /*
      * 清除本次正式工作資料。
@@ -25832,6 +27517,14 @@ document.addEventListener(
     }
 );
 window.addEventListener('load', () => {
+
+    /*
+     * 背景預熱中央權限服務，
+     * 不登入、不建立 Session。
+     */
+    warmUpOsaiSystemAccessService();
+
+
     initDB().then(() => {
         toggleAdmin(false);
         updateDataActionButtons();
