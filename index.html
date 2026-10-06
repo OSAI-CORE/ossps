@@ -307,6 +307,27 @@ main > * {
         light;
 }
 
+/* =========================================================
+   OSSPS｜桌機版右側主要介面最外圍 Scrollbar
+
+   桌機：
+   完全恢復瀏覽器／作業系統原生 Scrollbar。
+
+   手機直式／橫式：
+   維持目前 thin 設定，不修改。
+========================================================= */
+
+@media screen and (min-width: 951px) {
+
+    main {
+        scrollbar-width:
+            auto;
+
+        scrollbar-color:
+            auto;
+    }
+}
+
 /* 比照證照管理系統：彈窗背景與縮放動畫 */
 .modal-overlay {
     background-color: rgba(15, 23, 42, 0.6);
