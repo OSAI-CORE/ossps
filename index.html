@@ -1113,7 +1113,7 @@ main > * {
 }
 
 /* =========================================================
-   Cloud Center：旋轉讀取動畫相容性修正
+   Cloud Center／權限登入：旋轉讀取動畫相容性修正
 
    標準程序系統目前沒有使用 cloud-ui-root，
    因此直接以所有 cloud-*-modal
@@ -1123,8 +1123,9 @@ main > * {
    1. Font Awesome 的 fa-spin
    2. Tailwind 的 animate-spin
 
-   修正部分手機瀏覽器中
-   讀取圖示停留在第一幀、不旋轉的問題。
+修正部分手機瀏覽器中
+Cloud Center 與登入驗證 Spinner
+停留在第一幀、不旋轉的問題。
 ========================================================= */
 
 @-webkit-keyframes oshCloudCenterSpin {
@@ -1152,7 +1153,8 @@ main > * {
 }
 
 [id^="cloud-"][id$="-modal"] .fa-spin,
-[id^="cloud-"][id$="-modal"] .animate-spin {
+[id^="cloud-"][id$="-modal"] .animate-spin,
+#admin-login-submit-btn .fa-spin {
     display: inline-block !important;
 
     -webkit-animation:
