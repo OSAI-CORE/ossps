@@ -77,8 +77,12 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://unpkg.com/lucide@latest"></script>
 
-<!-- 手機版多頁 PDF 預覽 -->
+<!-- OSSPS｜PDF 多頁預覽 -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
+<!-- OSSPS｜DOCX 預覽必要函式庫 -->
+<script defer src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/docx-preview@0.3.7/dist/docx-preview.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Noto+Sans+TC:wght@300;400;500;700;900&display=swap');
         
@@ -843,6 +847,56 @@ main > * {
         #cbd5e1
         #f1f5f9;
 }
+
+
+/* =========================================================
+   雲端中心｜跨系統統一配色
+   比照績效管理、證照管理、風險評估系統
+
+   標準程序系統保留原本的 Workspace
+   儲存目標選取機制，僅補齊視覺配色。
+========================================================= */
+
+
+/* 1. 雲端工作資料：最近更新時間文字 */
+#cloud-workspace-list > [data-workspace-save-card] p.text-slate-400 {
+    color: #475569;
+}
+
+
+/* 2. 雲端工作資料：已選取圖卡分隔線 */
+#cloud-workspace-list > [data-workspace-save-card][style*="background-color"] > .border-t {
+    border-top-color: #D6D3D1;
+}
+
+
+/* 3. 管理雲端預覽：Preview ID 文字 */
+#cloud-preview-manage-list .font-mono.text-slate-400 {
+    color: #64748B;
+}
+
+
+/* 4. 管理雲端預覽：開啟次數與有效期限標題 */
+#cloud-preview-manage-list .grid.grid-cols-2 > .bg-slate-50 > .text-slate-400 {
+    color: #64748B;
+}
+
+
+/* 5. 雲端中心：管理者權限標籤 */
+#cloud-preview-role-label.bg-amber-100 {
+    background-color: #F5E8E3;
+    color: #8A4B3F;
+    box-shadow: inset 0 0 0 1px #E8CEC5;
+}
+
+
+/* 6. 雲端中心：使用者權限標籤 */
+#cloud-preview-role-label.bg-emerald-100 {
+    background-color: #E4F0EB;
+    color: #2F6951;
+    box-shadow: inset 0 0 0 1px #C9DED3;
+}
+
 
 /*
  * Chrome、Edge、Safari。
@@ -2294,19 +2348,326 @@ and (max-width: 950px) {
             border: 2px dashed #93c5fd;
         }
         
-#file-preview-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
+/* OSSPS｜獨立附件預覽視窗 */
 
+#file-preview-overlay {
+    position: fixed;
+    inset: 0;
+
+    width: 100%;
+    height: 100vh;
+    height: 100dvh;
+
+    z-index: 10000;
+
+    display: none;
+    align-items: center;
+    justify-content: center;
+
+    padding: 12px;
+    box-sizing: border-box;
+
+    background: rgba(15, 23, 42, 0.72);
+    backdrop-filter: blur(4px);
+}
+
+#ossps-file-modal-panel {
+    width: min(1100px, 100%);
+    height: min(900px, calc(100dvh - 24px));
+
+    min-height: 0;
+
+    display: flex;
+    flex-direction: column;
+
+    overflow: hidden;
+
+    background: #0f172a;
+    border: 1px solid #475569;
+    border-radius: 14px;
+
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+}
+
+#ossps-file-modal-header {
+    flex: 0 0 auto;
+    min-height: 52px;
+
+    display: flex;
+    align-items: center;
+    gap: 12px;
+
+    padding: 8px 14px;
+    box-sizing: border-box;
+
+    background: #1e293b;
+    border-bottom: 1px solid #475569;
+}
+
+#ossps-file-title {
+    flex: 1 1 auto;
+    min-width: 0;
+
+    color: #f8fafc;
+    font-size: 13px;
+    font-weight: 700;
+
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ossps-file-modal-btn {
+    flex: 0 0 auto;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+
+    min-height: 30px;
+    padding: 5px 10px;
+
+    color: #e2e8f0;
+    background: #334155;
+    border-radius: 7px;
+
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.ossps-file-modal-btn:hover {
+    background: #475569;
+}
+
+/* OSSPS｜附件預覽統一縮放工具 */
+
+#ossps-file-zoom-actions {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+
+    flex: 0 0 auto;
+}
+
+#ossps-file-zoom-label {
+    min-width: 42px;
+
+    color: #e2e8f0;
+    text-align: center;
+
+    font-size: 11px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+#ossps-file-zoom-actions .ossps-file-modal-btn {
+    min-width: 30px;
+    padding: 5px 7px;
+}
+
+/* 圖片放大後允許水平、垂直捲動 */
+
+#ossps-file-modal-stage #image-file-viewer {
+    overflow-x: auto;
+    overflow-y: auto;
+}
+
+#ossps-file-modal-stage #image-file-content {
+    max-width: none;
+}
+
+@media screen and (max-width: 600px) {
+
+    #ossps-file-modal-header {
+        gap: 6px;
+        padding: 8px;
+    }
+
+    #ossps-file-title {
+        font-size: 11px;
+    }
+
+    #ossps-file-modal-header .ossps-file-modal-btn {
+        font-size: 11px;
+        padding: 5px 7px;
+    }
+
+    #ossps-file-zoom-label {
+        min-width: 34px;
+        font-size: 10px;
+    }
+}
+
+#ossps-file-modal-stage {
+    position: relative;
+
+    flex: 1 1 auto;
+    min-height: 0;
+
+    overflow: hidden;
+    background: #525659;
+}
+
+#ossps-file-modal-stage #file-viewer,
+#ossps-file-modal-stage #image-file-viewer,
+#ossps-file-modal-stage #mobile-pdf-viewer {
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    box-sizing: border-box;
+}
+
+#ossps-file-modal-stage #word-viewer-fallback {
+    height: 100%;
+    background: #f8fafc;
+}
+
+/* 停用舊版浮動 PDF 縮放鈕，改使用視窗內工具列 */
+#mobile-pdf-zoom-controls {
+    display: none !important;
+}
+
+/* 手機與桌機均顯示預覽視窗內的縮放工具 */
+#file-preview-overlay #ossps-pdf-desktop-zoom {
+    display: flex !important;
+}
+
+@media print {
+    #file-preview-overlay {
+        display: none !important;
+    }
+}
+
+/* =========================================================
+   OSSPS｜圖片附件預覽
+   支援 JPG / JPEG / PNG
+
+   1. 保持原本白色程序書預覽區
+   2. 圖片依容器寬度等比例顯示
+   3. 使用原生垂直捲動條
+   4. 不影響原本 PDF / Word 預覽
+========================================================= */
+
+#image-file-viewer {
     width: 100%;
     height: 100%;
 
-    background: white;
+    overflow-y: scroll;
+    overflow-x: hidden;
 
-    z-index: 50;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
 
-    display: none;
+    color-scheme: light;
+
+    scrollbar-width: auto;
+    scrollbar-color: auto;
+}
+
+#image-file-viewer.hidden {
+    display: none !important;
+}
+
+#image-file-content {
+    display: block;
+
+    width: 85%;
+    max-width: 85%;
+
+    height: auto;
+
+    margin: 18px auto;
+
+    object-fit: contain;
+}
+
+/* =========================================================
+   OSSPS｜PDF / 圖片附件內部 Scrollbar
+
+   參考績效管理系統獨立預覽容器：
+   - PDF 和圖片使用同樣的內部滑桿
+   - 保留滑鼠滾輪與拖曳操作
+   - 移除上下箭頭
+   - 不影響 main 最外圍 Scrollbar
+========================================================= */
+
+#image-file-viewer,
+#mobile-pdf-pages-scroll {
+
+    overscroll-behavior-y: contain;
+
+    -webkit-overflow-scrolling: touch;
+
+    scrollbar-width: thin;
+
+    scrollbar-color:
+        #94a3b8
+        #f1f5f9;
+}
+
+@supports selector(::-webkit-scrollbar) {
+
+    /*
+     * Chrome / Edge / Safari
+     * 使用 WebKit Scrollbar 樣式。
+     */
+    #image-file-viewer,
+    #mobile-pdf-pages-scroll {
+
+        scrollbar-width: auto;
+
+        scrollbar-color: auto;
+    }
+
+    #image-file-viewer::-webkit-scrollbar,
+    #mobile-pdf-pages-scroll::-webkit-scrollbar {
+
+        width: 10px;
+        height: 10px;
+    }
+
+    #image-file-viewer::-webkit-scrollbar-track,
+    #mobile-pdf-pages-scroll::-webkit-scrollbar-track {
+
+        background: #f1f5f9;
+    }
+
+    #image-file-viewer::-webkit-scrollbar-thumb,
+    #mobile-pdf-pages-scroll::-webkit-scrollbar-thumb {
+
+        background: #94a3b8;
+
+        border-radius: 5px;
+    }
+
+    #image-file-viewer::-webkit-scrollbar-thumb:hover,
+    #mobile-pdf-pages-scroll::-webkit-scrollbar-thumb:hover {
+
+        background: #64748b;
+    }
+
+    /*
+     * 移除頭尾箭頭。
+     */
+    #image-file-viewer::-webkit-scrollbar-button,
+    #mobile-pdf-pages-scroll::-webkit-scrollbar-button {
+
+        -webkit-appearance: none !important;
+        appearance: none !important;
+
+        display: none !important;
+
+        width: 0 !important;
+        height: 0 !important;
+
+        min-width: 0 !important;
+        min-height: 0 !important;
+
+        border: 0 !important;
+        padding: 0 !important;
+    }
 }
 
 /* =========================================================
@@ -2378,6 +2739,67 @@ and (max-width: 950px) {
         700;
 }
 
+/* 附件 PDF 工具列 */
+#mobile-pdf-toolbar {
+    gap: 8px;
+    padding: 0 10px;
+}
+
+#mobile-pdf-toolbar-left {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+#ossps-pdf-toolbar-actions,
+#ossps-pdf-desktop-zoom {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    flex-shrink: 0;
+}
+
+#ossps-pdf-toolbar-actions button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    min-height: 28px;
+    padding: 4px 8px;
+
+    border-radius: 6px;
+
+    background: #475569;
+    color: #ffffff;
+
+    font-size: 11px;
+    cursor: pointer;
+}
+
+#ossps-pdf-toolbar-actions button:hover {
+    background: #64748b;
+}
+
+#ossps-pdf-inline-zoom {
+    min-width: 34px;
+    text-align: center;
+    font-size: 11px;
+    color: #e2e8f0;
+}
+
+/* 手機沿用既有上方 PDF 縮放控制 */
+@media screen and (max-width: 768px),
+       screen and (orientation: landscape)
+       and (max-height: 520px)
+       and (max-width: 950px) {
+
+    #ossps-pdf-desktop-zoom {
+        display: none;
+    }
+
+    #ossps-pdf-toolbar-actions button span {
+        display: none;
+    }
+}
 
 #mobile-pdf-toolbar-left {
     min-width: 0;
@@ -2617,10 +3039,13 @@ and (max-width: 950px) {
         100%;
 
     overflow-y:
+        scroll;
+
+    overflow-x:
         auto;
 
-overflow-x:
-    auto;
+    scrollbar-gutter:
+        stable;
 
     box-sizing:
         border-box;
@@ -3402,6 +3827,255 @@ and (max-width: 950px) {
         #ffffff !important;
 }
 
+/* =========================================================
+   OSSPS｜附件專用列印
+   只在 body 含有 ossps-attachment-print 時生效。
+   一般程序書列印規則完全不動。
+========================================================= */
+
+@media print {
+
+    body.ossps-attachment-print {
+        background: #ffffff !important;
+    }
+
+    /* 只列印獨立附件視窗 */
+    body.ossps-attachment-print
+    > :not(#file-preview-overlay) {
+        display: none !important;
+    }
+
+    body.ossps-attachment-print
+    #file-preview-overlay {
+        display: block !important;
+
+        position: static !important;
+        inset: auto !important;
+
+        width: 100% !important;
+        height: auto !important;
+
+        padding: 0 !important;
+        margin: 0 !important;
+
+        background: #ffffff !important;
+        backdrop-filter: none !important;
+
+        overflow: visible !important;
+    }
+
+    body.ossps-attachment-print
+    #ossps-file-modal-panel {
+        display: block !important;
+
+        width: 100% !important;
+        height: auto !important;
+        min-height: 0 !important;
+
+        border: 0 !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+
+        overflow: visible !important;
+    }
+
+    /* 列印時不包含工具列 */
+    body.ossps-attachment-print
+    #ossps-file-modal-header,
+    body.ossps-attachment-print
+    #mobile-pdf-toolbar {
+        display: none !important;
+    }
+
+    body.ossps-attachment-print
+    #ossps-file-modal-stage {
+        display: block !important;
+
+        width: 100% !important;
+        height: auto !important;
+
+        overflow: visible !important;
+        background: #ffffff !important;
+    }
+
+    /* 不列印備用 iframe 或 Word 提示 */
+    body.ossps-attachment-print
+    #file-viewer,
+    body.ossps-attachment-print
+    #word-viewer-fallback {
+        display: none !important;
+    }
+
+    /* 圖片列印 */
+    body.ossps-attachment-print
+    #image-file-viewer:not(.hidden) {
+        display: block !important;
+
+        width: 100% !important;
+        height: auto !important;
+
+        overflow: visible !important;
+        background: #ffffff !important;
+    }
+
+    body.ossps-attachment-print
+    #image-file-content {
+        display: block !important;
+
+        width: auto !important;
+        height: auto !important;
+
+        max-width: 190mm !important;
+        max-height: 260mm !important;
+
+        margin: 0 auto !important;
+
+        object-fit: contain !important;
+    }
+
+    /* PDF 列印 */
+    body.ossps-attachment-print
+    #mobile-pdf-viewer:not(.hidden),
+    body.ossps-attachment-print
+    #mobile-pdf-pages-scroll,
+    body.ossps-attachment-print
+    #mobile-pdf-pages {
+        display: block !important;
+
+        width: 100% !important;
+        height: auto !important;
+
+        min-width: 0 !important;
+
+        padding: 0 !important;
+        margin: 0 !important;
+
+        overflow: visible !important;
+        background: #ffffff !important;
+    }
+
+    body.ossps-attachment-print
+    #mobile-pdf-pages .mobile-pdf-page {
+        display: block !important;
+
+        width: auto !important;
+        height: auto !important;
+
+        max-width: 190mm !important;
+        max-height: 260mm !important;
+
+        margin: 0 auto !important;
+
+        box-shadow: none !important;
+
+        break-inside: avoid-page;
+        page-break-inside: avoid;
+    }
+
+    /* PDF 第二頁以後另起新頁 */
+    body.ossps-attachment-print
+    #mobile-pdf-pages
+    .mobile-pdf-page:not(:first-child) {
+        break-before: page;
+        page-break-before: always;
+    }
+}
+
+/* =========================================================
+   OSSPS｜DOCX 獨立預覽
+   桌機、手機直式、手機橫式共用
+========================================================= */
+
+#ossps-file-modal-stage #docx-file-viewer {
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+
+    overflow-x: auto;
+    overflow-y: auto;
+
+    box-sizing: border-box;
+    background: #525659;
+
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+
+    color: #e2e8f0;
+    scrollbar-width: thin;
+}
+
+#ossps-file-modal-stage #docx-file-viewer.hidden {
+    display: none !important;
+}
+
+/* DOCX 實際縮放區 */
+#ossps-docx-render-host {
+    width: max-content;
+    margin: 0 auto;
+    zoom: 1;
+}
+
+/* 讓 Word 頁面與 PDF 一樣顯示在灰色背景 */
+#ossps-docx-render-host .docx-wrapper {
+    background: #525659 !important;
+}
+
+#ossps-docx-render-host section.docx {
+    margin-bottom: 12px !important;
+
+    box-shadow:
+        0 3px 12px rgba(0, 0, 0, 0.25);
+}
+
+/* 避免 hidden 按鈕被自訂 display 樣式覆蓋 */
+#ossps-file-modal-header
+.ossps-file-modal-btn.hidden {
+    display: none !important;
+}
+
+/* 手機直式 */
+@media screen and (max-width: 600px) {
+
+    #file-preview-overlay {
+        padding: 6px;
+    }
+
+    #ossps-file-modal-panel {
+        height: calc(100dvh - 12px);
+    }
+
+    /* 手機僅顯示圖示，避免工具列過度擁擠 */
+    #ossps-file-print-btn span,
+    #ossps-word-download-top span {
+        display: none;
+    }
+}
+
+/* 手機橫式 */
+@media screen
+and (orientation: landscape)
+and (max-height: 520px)
+and (max-width: 950px) {
+
+    #file-preview-overlay {
+        padding: 6px;
+    }
+
+    #ossps-file-modal-panel {
+        height: calc(100dvh - 12px);
+    }
+
+    #ossps-file-modal-header {
+        min-height: 42px;
+        padding: 5px 10px;
+    }
+
+    #ossps-file-print-btn span,
+    #ossps-word-download-top span {
+        display: none;
+    }
+}
+
     </style>
 </head>
 <body>
@@ -3621,7 +4295,7 @@ and (max-width: 950px) {
                         <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider">程序書分類</label>
                         <!-- 管理員分類操作按鈕 -->
                         <div id="category-admin-tools" class="hidden flex space-x-2">
-<button onclick="document.getElementById('file-upload-input').click()" class="sidebar-icon-btn text-sky-400 hover:text-sky-300" title="上傳 PDF/Word">
+<button onclick="document.getElementById('file-upload-input').click()" class="sidebar-icon-btn text-sky-400 hover:text-sky-300" title="上傳檔案">
     <i data-lucide="paperclip" class="w-4 h-4"></i>
 </button>
                             <button onclick="addCategory()"
@@ -3661,7 +4335,7 @@ and (max-width: 950px) {
 <select id="category-select" class="w-full bg-slate-800 border border-slate-700 rounded-lg py-3 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-white transition cursor-pointer" onchange="updateReportsDropdown()">
     <option value="">-- 請先載入預覽資料 --</option>
 </select>
-                    <input type="file" id="file-upload-input" class="hidden" accept=".pdf,.doc,.docx" onchange="handleFileUpload(event)">
+                    <input type="file" id="file-upload-input" class="hidden" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" onchange="handleFileUpload(event)">
                     <div id="drag-hint" class="hidden text-[10px] text-blue-400 text-center animate-pulse">拖放檔案於此處上傳...</div>
                 </div>
 
@@ -3865,7 +4539,7 @@ and (max-width: 950px) {
 
 
 <button
-    onclick="window.print()"
+    onclick="printActiveReportOrFile()"
     class="top-data-action-btn bg-stone-600 text-white hover:bg-stone-700"
 >
     <svg
@@ -3912,8 +4586,85 @@ and (max-width: 950px) {
 
             <!-- A4 報表區 -->
             <div id="report-preview" class="a4-container">
-                <!-- 檔案預覽圖層 -->
-<div id="file-preview-overlay">
+<!-- OSSPS｜獨立附件預覽視窗 -->
+<div
+    id="file-preview-overlay"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="ossps-file-title"
+    onclick="
+        if (event.target === this) {
+            closeExternalFilePreview();
+        }
+    "
+>
+
+    <div id="ossps-file-modal-panel">
+
+        <div id="ossps-file-modal-header">
+
+<span id="ossps-file-title">
+    附件預覽
+</span>
+
+<div id="ossps-file-zoom-actions">
+
+    <button
+        type="button"
+        class="ossps-file-modal-btn"
+        onclick="changeOsspsAttachmentZoom(-1)"
+        aria-label="縮小附件">
+        <i class="fa-solid fa-minus"></i>
+    </button>
+
+    <span id="ossps-file-zoom-label">
+        100%
+    </span>
+
+    <button
+        type="button"
+        class="ossps-file-modal-btn"
+        onclick="changeOsspsAttachmentZoom(1)"
+        aria-label="放大附件">
+        <i class="fa-solid fa-plus"></i>
+    </button>
+
+</div>
+
+<button
+    id="ossps-file-print-btn"
+    type="button"
+    class="ossps-file-modal-btn"
+    onclick="printActiveReportOrFile()"
+    aria-label="列印附件"
+>
+    <i class="fa-solid fa-print"></i>
+    <span>列印附件</span>
+</button>
+
+<button
+    id="ossps-word-download-top"
+    type="button"
+    class="ossps-file-modal-btn hidden"
+    onclick="document.getElementById('download-word-link').click()"
+    aria-label="下載 Word 原始檔"
+>
+    <i class="fa-solid fa-download"></i>
+    <span>下載原檔</span>
+</button>
+
+            <button
+                type="button"
+                class="ossps-file-modal-btn"
+                onclick="closeExternalFilePreview()"
+                aria-label="關閉附件預覽"
+            >
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+        </div>
+
+        <div id="ossps-file-modal-stage">
 
     <!-- 桌機 PDF：完全保留原本 iframe -->
     <iframe
@@ -3921,6 +4672,13 @@ and (max-width: 950px) {
         class="w-full h-full border-none">
     </iframe>
 
+<!-- JPG / JPEG / PNG 圖片預覽 -->
+<div id="image-file-viewer" class="hidden">
+    <img
+        id="image-file-content"
+        alt="附件圖片預覽"
+    >
+</div>    
 
     <!-- 手機直式／橫式 PDF Viewer -->
     <div
@@ -3966,6 +4724,15 @@ and (max-width: 950px) {
 
     </div>
 
+<!-- OSSPS｜DOCX 文件預覽區 -->
+<div
+    id="docx-file-viewer"
+    class="hidden"
+    role="region"
+    aria-label="Word 文件預覽"
+>
+    <div id="ossps-docx-render-host"></div>
+</div>
 
     <!-- Word 原本機制保持不變 -->
     <div
@@ -3991,6 +4758,8 @@ and (max-width: 950px) {
 
     </div>
 
+        </div>
+    </div>
 </div>
 
 <div id="report-content-wrapper">
@@ -4727,8 +5496,10 @@ and (max-width: 950px) {
              class="w-4 h-4"
              aria-hidden="true">
 
-            <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"></path>
-            <path d="M21 3v5h-5"></path>
+<path d="M3 11a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
+<path d="M21 3v5h-5"></path>
+<path d="M21 13a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path>
+<path d="M8 16H3v5"></path>
         </svg>
 
     </button>
@@ -5104,7 +5875,7 @@ and (max-width: 950px) {
                  flex items-center justify-center
                  shrink-0">
 
-<i class="fas fa-users text-indigo-600"></i>
+<i class="fas fa-user text-indigo-600"></i>
 
     </span>
 
@@ -6888,7 +7659,8 @@ let mobilePdfRenderToken =
 ========================================================= */
 
 const MOBILE_PDF_ZOOM_LEVELS = [
-    0.80,
+    0.50,
+    0.75,
     1.00,
     1.25,
     1.50
@@ -6899,7 +7671,7 @@ const MOBILE_PDF_ZOOM_LEVELS = [
  * 預設 100%。
  */
 let mobilePdfZoomIndex =
-    1;
+    2;
 
 
 /* =========================================================
@@ -7060,6 +7832,22 @@ let activeCloudWorkspaceName =
 let activeCloudWorkspaceRevision =
     0;
 
+/*
+ * 防止主要雲端資料操作重疊。
+ *
+ * 僅管理：
+ * Workspace 建立、載入、儲存
+ * Cloud Preview 發布
+ *
+ * 不影響程序書其他業務功能。
+ */
+let standardProcedureCloudOperation = '';
+
+/*
+ * 目前 Workspace 只是儲存目標，
+ * 尚未將該 Workspace 的資料載入系統。
+ */
+let standardProcedureWorkspaceTargetOnly = false;
 
 /* =========================================================
    Supabase OSAI Cloud 共用設定
@@ -9505,25 +10293,25 @@ const configs = {
     manage: {
         icon: 'fa-sliders',
 
-        title:
-            getCurrentRole() === 'admin'
-                ? '管理雲端預覽'
-                : '我的發布預覽',
+title:
+    getCurrentRole() === 'admin'
+        ? '管理雲端預覽'
+        : '我的雲端預覽',
 
-        subtitle:
-            getCurrentRole() === 'admin'
-                ? 'MANAGE PREVIEWS'
-                : 'MY PREVIEWS',
+subtitle:
+    getCurrentRole() === 'admin'
+        ? 'MANAGE PREVIEWS'
+        : 'MY CLOUD PREVIEWS',
 
         color: 'text-indigo-300'
     },
 
-    accounts: {
-        icon: 'fa-users',
-        title: '管理發布帳號',
-        subtitle: 'PUBLISHER ACCOUNTS',
-        color: 'text-violet-300'
-    }
+accounts: {
+    icon: 'fa-user',
+    title: '管理發布帳號',
+    subtitle: 'PUBLISHER ACCOUNTS',
+    color: 'text-violet-300'
+}
 
 };
 
@@ -10021,16 +10809,15 @@ roleIcon.className =
         }
 
 
-        if (manageCardTitle) {
-            manageCardTitle.textContent =
-                '我的發布預覽';
-        }
+if (manageCardTitle) {
+    manageCardTitle.textContent =
+        '我的雲端預覽';
+}
 
-
-        if (manageCardSubtitle) {
-            manageCardSubtitle.textContent =
-                'MY PREVIEWS';
-        }
+if (manageCardSubtitle) {
+    manageCardSubtitle.textContent =
+        'MY CLOUD PREVIEWS';
+}
 
 if (accountsCard) {
     accountsCard.classList.add(
@@ -10824,6 +11611,8 @@ const allowedMimeTypes =
         'application/pdf',
 
         'application/msword',
+'image/jpeg',
+'image/png',
 
         'application/vnd.openxmlformats-officedocument.' +
         'wordprocessingml.document'
@@ -11423,7 +12212,31 @@ function getCloudPreviewPublishErrorMessage(
             '雲端預覽資料更新失敗。',
 
         PREVIEW_DELETE_FAILED:
-            '失敗資料無法自動清除。'
+            '失敗資料無法自動清除。',
+
+        WORKSPACE_FOREIGN_ATTACHMENT:
+            '來源 Workspace 的雲端附件尚未轉移，待下一階段完成後才可安全發布。',
+
+        WORKSPACE_EXTERNAL_ATTACHMENT:
+            '附件仍使用臨時下載網址，無法安全發布完整雲端預覽。',
+
+        WORKSPACE_ATTACHMENT_CONTENT_MISSING:
+            '部分附件缺少完整檔案內容，無法發布雲端預覽。',
+
+        CLOUD_ATTACHMENT_SOURCE_MISSING:
+            '雲端附件缺少來源 Workspace 資訊，請重新載入雲端工作資料。',
+
+        WORKSPACE_SIGNED_READ_INVALID:
+            '來源 Workspace 附件讀取資訊不完整。',
+
+        CLOUD_ATTACHMENT_READ_FAILED:
+            '雲端附件下載或封裝失敗，請稍後重試。',
+
+        CLOUD_ATTACHMENT_SIZE_MISMATCH:
+            '雲端附件大小與來源紀錄不一致，無法安全發布。',
+
+        WORKSPACE_FILE_SIZE_INVALID:
+            '附件大小無效或超過 5MB 上限。'
     };
 
     return (
@@ -11591,8 +12404,19 @@ if (
         crypto.randomUUID();
 
 
-    let previewId =
-        '';
+if (standardProcedureCloudOperation) {
+    setCloudPreviewPublishStatus(
+        '目前有雲端操作正在進行，請完成後再試。',
+        'error'
+    );
+    return;
+}
+
+standardProcedureCloudOperation =
+    'preview-publish';
+
+let previewId =
+    '';
 
     let rollbackFailed =
         false;
@@ -11617,9 +12441,33 @@ if (
          * 建立標準程序系統正式 unified-data。
          * =====================================================
          */
-const sourceData =
-    buildStandardProcedureExportData();
+/*
+ * 固定本次正式預覽資料快照。
+ */
+const rawPreviewData =
+    JSON.parse(
+        JSON.stringify(
+            buildStandardProcedureExportData()
+        )
+    );
 
+/*
+ * 將來源 Workspace 附件
+ * 轉成完整 DataURL。
+ */
+const sourceData =
+    await materializeStandardProcedurePreviewSources(
+        rawPreviewData
+    );
+
+/*
+ * 確認所有附件均已成為
+ * 可供新 Preview 獨立上傳的資料。
+ */
+verifyStandardProcedureWorkspaceAttachmentSources(
+    sourceData,
+    []
+);
 
         /*
          * 找出所有尚未上傳 Cloud、
@@ -12189,11 +13037,18 @@ await runCloudPreviewWithRetry(
         );
 
 
-    } finally {
+} finally {
 
-        setCloudPreviewPublishBusy(
-            false
-        );
+    if (
+        standardProcedureCloudOperation ===
+        'preview-publish'
+    ) {
+        standardProcedureCloudOperation = '';
+    }
+
+    setCloudPreviewPublishBusy(
+        false
+    );
     }
 }
 
@@ -12638,8 +13493,12 @@ function renderCloudPreviewManageList(
     }
 
 
-    const showAdminActions =
-        getCurrentRole() === 'admin';
+const showAdminActions =
+    getCurrentRole() === 'admin';
+
+const showPreviewManageActions =
+    showAdminActions ||
+    getCurrentRole() === 'editor';
 
 
     if (
@@ -12867,7 +13726,7 @@ hover:border-indigo-200
     <!-- 右側：管理操作 -->
     <div class="
         shrink-0
-        ${showAdminActions ? 'flex' : 'hidden'}
+        ${showPreviewManageActions ? 'flex' : 'hidden'}
         items-center
         gap-1
     ">
@@ -13891,10 +14750,10 @@ function openCloudPreviewEditModalFromButton(
     /*
      * 介面層僅允許管理者。
      */
-    if (
-        getCurrentRole() !==
-        'admin'
-    ) {
+if (
+    getCurrentRole() !== 'admin' &&
+    getCurrentRole() !== 'editor'
+) {
         showToast(
             '僅管理者可編輯雲端預覽。',
             'error'
@@ -14117,10 +14976,10 @@ function closeCloudPreviewEditModalOutside(
 
 async function submitCloudPreviewEdit() {
 
-    if (
-        getCurrentRole() !==
-        'admin'
-    ) {
+if (
+    getCurrentRole() !== 'admin' &&
+    getCurrentRole() !== 'editor'
+) {
         showToast(
             '僅管理者可編輯雲端預覽。',
             'error'
@@ -14532,10 +15391,10 @@ async function toggleCloudPreviewEnabledFromButton(
     /*
      * 介面層只允許管理者操作。
      */
-    if (
-        getCurrentRole() !==
-        'admin'
-    ) {
+if (
+    getCurrentRole() !== 'admin' &&
+    getCurrentRole() !== 'editor'
+) {
 
         showToast(
             '僅管理者可變更雲端預覽狀態。',
@@ -14783,10 +15642,10 @@ async function deleteCloudPreviewFromButton(
     /*
      * 介面層只允許管理者操作。
      */
-    if (
-        getCurrentRole() !==
-        'admin'
-    ) {
+if (
+    getCurrentRole() !== 'admin' &&
+    getCurrentRole() !== 'editor'
+) {
 
         showToast(
             '僅管理者可刪除雲端預覽。',
@@ -17188,6 +18047,8 @@ function updateActiveCloudWorkspaceUI() {
 
 function clearActiveCloudWorkspace() {
 
+standardProcedureWorkspaceTargetOnly = false;    
+
     activeCloudWorkspaceId =
         '';
 
@@ -17355,15 +18216,8 @@ function setCloudWorkspaceCreateBusy(
 
 
         button.innerHTML = `
-            <span class="
-                w-3.5 h-3.5
-                shrink-0
-                rounded-full
-                border-2
-                border-white/40
-                border-t-white
-                animate-spin
-            "></span>
+<i class="fas fa-spinner fa-spin text-[13px] leading-none"
+   aria-hidden="true"></i>
 
             <span>
                 ${text || '正在建立...'}
@@ -18335,6 +19189,97 @@ if (
     }
 }
 
+/*
+ * 選擇既有 Workspace 作為儲存目標。
+ *
+ * 不呼叫載入 API。
+ * 不修改 categories / standards。
+ * 不清除 IndexedDB。
+ */
+function selectStandardProcedureWorkspaceSaveTarget(
+    card,
+    event
+) {
+    /*
+     * 點擊圖卡內既有功能按鈕時，
+     * 不觸發目標選擇。
+     */
+    if (event?.target?.closest('button')) {
+        return;
+    }
+
+    if (standardProcedureCloudOperation) {
+        return;
+    }
+
+    if (isPreviewDataActive()) {
+        return;
+    }
+
+    const role = getCurrentRole();
+
+    if (
+        role !== 'admin' &&
+        role !== 'editor'
+    ) {
+        return;
+    }
+
+    const id = String(
+        card?.dataset?.workspaceId || ''
+    ).trim();
+
+    const name = String(
+        card?.dataset?.workspaceName || ''
+    ).trim();
+
+    const revision = Number(
+        card?.dataset?.workspaceRevision || 0
+    );
+
+    const enabled =
+        card?.dataset?.workspaceEnabled === 'true';
+
+    if (
+        !id ||
+        !Number.isInteger(revision) ||
+        revision < 1 ||
+        !enabled
+    ) {
+        setCloudWorkspaceStatus(
+            '此雲端工作資料無法選為儲存目標。',
+            'error'
+        );
+        return;
+    }
+
+    activeCloudWorkspaceId = id;
+    activeCloudWorkspaceName = name;
+    activeCloudWorkspaceRevision = revision;
+
+    standardProcedureWorkspaceTargetOnly = true;
+
+    updateActiveCloudWorkspaceUI();
+
+    /*
+     * 僅變更選取圖卡的背景，
+     * 保留其他圖卡原本樣式。
+     */
+    document
+        .querySelectorAll('[data-workspace-save-card]')
+        .forEach(item => {
+            item.style.backgroundColor =
+                item === card
+                    ? '#EEE9E1'
+                    : '';
+        });
+
+    setCloudWorkspaceStatus(
+        `已選擇「${name}」作為儲存目標。`,
+        'info'
+    );
+}
+
 function renderCloudWorkspaceList(
     workspaces
 ) {
@@ -18488,6 +19433,7 @@ const isSameWorkspace =
 
 
 const isCurrentWorkspace =
+    !standardProcedureWorkspaceTargetOnly &&
     isSameWorkspace &&
     Number(
         activeCloudWorkspaceRevision
@@ -18534,7 +19480,15 @@ const hasNewerWorkspaceRevision =
 
 
 return `
-    <div class="
+    <div
+        data-workspace-save-card
+        data-workspace-id="${id}"
+        data-workspace-name="${name}"
+        data-workspace-revision="${revision}"
+        data-workspace-enabled="${enabled ? 'true' : 'false'}"
+        onclick="selectStandardProcedureWorkspaceSaveTarget(this, event)"
+        style="${isSameWorkspace ? 'background-color:#EEE9E1;' : ''}"
+        class="
         rounded-xl
         border border-sky-100
         bg-sky-50
@@ -18789,7 +19743,7 @@ ${
             ? `
                 <button type="button"
                         data-workspace-id="${id}"
-                        onclick="loadCloudWorkspaceIntoSystem('${id}')"
+                        onclick="loadCloudWorkspaceIntoSystem('${id}', this)"
                         class="
                             w-full h-8
                             rounded-lg
@@ -18875,7 +19829,7 @@ ${
             : `
                 <button type="button"
                         data-workspace-id="${id}"
-                        onclick="loadCloudWorkspaceIntoSystem('${id}')"
+                        onclick="loadCloudWorkspaceIntoSystem('${id}', this)"
 class="
     w-full h-8
     rounded-lg
@@ -19080,6 +20034,8 @@ const allowedMimeTypes =
     new Set([
         'application/pdf',
         'application/msword',
+'image/jpeg',
+'image/png',
         'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
     ]);
 
@@ -19878,7 +20834,18 @@ if (
     return;
 }    
 
-    let workspaceId = '';
+    if (standardProcedureCloudOperation) {
+    setCloudWorkspaceStatus(
+        '目前有雲端操作正在進行，請完成後再試。',
+        'error'
+    );
+    return;
+}
+
+standardProcedureCloudOperation =
+    'workspace-create';
+
+let workspaceId = '';
     let creationCompleted = false;
 
     try {
@@ -19894,11 +20861,44 @@ setCloudWorkspaceStatus(
 
 
 const localPayload =
-    buildStandardProcedureExportData();
+    JSON.parse(
+        JSON.stringify(
+            buildStandardProcedureExportData()
+        )
+    );
+
+/*
+ * 4B-5：
+ * 建立新 Workspace 前，
+ * 將其他 Workspace 的雲端附件
+ * 全部轉成完整 DataURL。
+ *
+ * 此時尚未建立新 Workspace，
+ * 來源準備失敗不會產生雲端殘留資料。
+ */
+setCloudWorkspaceStatus(
+    '正在封裝新工作資料的來源附件...',
+    'info'
+);
+
+const preparedPayload =
+    await materializeStandardProcedureWorkspaceTransferSources(
+        localPayload,
+        '',
+        []
+    );
+
+/*
+ * 新 Workspace 不允許直接引用 A 的附件 ID。
+ */
+verifyStandardProcedureWorkspaceAttachmentSources(
+    preparedPayload,
+    []
+);
 
 const attachmentMap =
     collectUniqueStandardProcedureCloudAttachments(
-        localPayload
+        preparedPayload
     );
 
 const uniqueAttachments =
@@ -19910,8 +20910,43 @@ const uniqueAttachments =
             new Date()
                 .getFullYear();
 
-const workspaceName =
+const baseName =
     `${currentYear}年度標準程序工作資料`;
+
+/*
+ * 建立前取得既有 Workspace 清單。
+ * 不開啟命名視窗。
+ */
+const listResult =
+    await cloudWorkspaceRequest({
+        action: 'list',
+        system_type: OSH_CLOUD_SYSTEM_TYPE
+    });
+
+if (!Array.isArray(listResult?.workspaces)) {
+    throw new Error(
+        'WORKSPACE_LIST_INVALID'
+    );
+}
+
+const usedNames = new Set(
+    listResult.workspaces.map(
+        item =>
+            String(
+                item?.workspace_name || ''
+            ).trim()
+    )
+);
+
+let workspaceName = baseName;
+let suffix = 2;
+
+while (usedNames.has(workspaceName)) {
+    workspaceName =
+        `${baseName}(${suffix})`;
+
+    suffix += 1;
+}
 
         /*
          * 第一步：
@@ -20002,7 +21037,7 @@ const workspaceName =
 
 const cloudPayload =
     buildStandardProcedureCloudPayload(
-        localPayload,
+        preparedPayload,
         cloudFileIdMap
     );
 
@@ -20036,13 +21071,15 @@ const cloudPayload =
         const savedWorkspace =
             saveResult?.workspace;
 
-        if (
-            !savedWorkspace?.id
-        ) {
-            throw new Error(
-                'WORKSPACE_SAVE_INVALID'
-            );
-        }
+if (
+    !savedWorkspace?.id ||
+    String(savedWorkspace.id) !==
+        String(workspaceId)
+) {
+    throw new Error(
+        'WORKSPACE_SAVE_INVALID'
+    );
+}
 
         creationCompleted =
             true;
@@ -20064,28 +21101,53 @@ const cloudPayload =
                 savedWorkspace.revision
             ) || 1;
 
+standardProcedureWorkspaceTargetOnly = false;
+
 updateActiveCloudWorkspaceUI();
 
-/*
- * Cloud 已完成正式儲存，
- * 標準程序目前沒有尚未儲存的畫面草稿。
- */
-reportDraftDirty =
-    false;
+sessionNeedsExport = true;
 
 /*
- * 但 Cloud Workspace Save
- * 不等於正式 JSON 已匯出。
+ * 新 Workspace 正式建立成功，
+ * 才同步目前工作區附件來源。
  */
-sessionNeedsExport =
-    true;
+let rebindFailed = false;
 
-        setCloudWorkspaceStatus(
-            `已建立「${activeCloudWorkspaceName}」Revision ${activeCloudWorkspaceRevision}。`,
-            'success'
-        );
+try {
+    await rebindStandardProcedureSessionWorkspaceAttachments(
+        activeCloudWorkspaceId,
+        localPayload.standards,
+        activeCloudWorkspaceRevision
+    );
 
-        await loadCloudWorkspaceList();
+} catch (rebindError) {
+    rebindFailed = true;
+
+    console.warn(
+        '新 Workspace 已建立，但本機附件來源刷新失敗：',
+        rebindError
+    );
+}
+
+/*
+ * 清單刷新失敗不回滾已建立的 Workspace。
+ */
+try {
+    await loadCloudWorkspaceList();
+
+} catch (listError) {
+    console.warn(
+        '新 Workspace 清單刷新失敗：',
+        listError
+    );
+}
+
+setCloudWorkspaceStatus(
+    rebindFailed
+        ? '工作資料已建立，但本機附件來源尚未更新；請重新載入新工作資料。'
+        : `已建立「${activeCloudWorkspaceName}」Revision ${activeCloudWorkspaceRevision}。`,
+    rebindFailed ? 'error' : 'success'
+);
 
     } catch (error) {
         console.error(
@@ -20172,7 +21234,34 @@ sessionNeedsExport =
                 '雲端工作資料儲存失敗。',
 
             WORKSPACE_SAVE_INVALID:
-                '雲端工作資料儲存結果不完整。'
+                '雲端工作資料儲存結果不完整。',
+
+            WORKSPACE_FOREIGN_ATTACHMENT:
+                '附件來源與新工作資料不一致，且未能完成安全轉換，請確認來源附件可正常讀取。',
+
+            WORKSPACE_EXTERNAL_ATTACHMENT:
+                '附件仍使用臨時下載網址，不能直接建立新雲端工作資料。',
+
+            WORKSPACE_ATTACHMENT_CONTENT_MISSING:
+                '部分附件缺少完整檔案內容，無法建立雲端工作資料。',
+
+            CLOUD_ATTACHMENT_SOURCE_MISSING:
+                '附件缺少來源工作資料資訊，無法安全轉移。',
+
+            WORKSPACE_SIGNED_READ_FAILED:
+                '無法取得來源附件讀取權限。',
+
+            WORKSPACE_SIGNED_READ_INVALID:
+                '來源附件讀取資訊不完整。',
+
+            CLOUD_ATTACHMENT_READ_FAILED:
+                '來源附件下載失敗，請稍後重試。',
+
+            CLOUD_ATTACHMENT_SIZE_MISMATCH:
+                '來源附件大小與原始紀錄不一致。',
+
+            WORKSPACE_ATTACHMENT_DATA_INVALID:
+                '附件內容格式不正確，無法建立雲端工作資料。'
         };
 
         setCloudWorkspaceStatus(
@@ -20190,10 +21279,18 @@ sessionNeedsExport =
             await loadCloudWorkspaceList();
         } catch (_) {}
 
-    } finally {
-        setCloudWorkspaceCreateBusy(
-            false
-        );
+} finally {
+
+    if (
+        standardProcedureCloudOperation ===
+        'workspace-create'
+    ) {
+        standardProcedureCloudOperation = '';
+    }
+
+    setCloudWorkspaceCreateBusy(
+        false
+    );
     }
 }
 
@@ -20523,7 +21620,8 @@ async function applyStandardProcedureWorkspaceData(
  * =========================================================
  */
 async function loadCloudWorkspaceIntoSystem(
-    workspaceId
+    workspaceId,
+    button = null
 ) {
     const role =
         getCurrentRole();
@@ -20557,6 +21655,14 @@ async function loadCloudWorkspaceIntoSystem(
         return;
     }
 
+if (standardProcedureCloudOperation) {
+    setCloudWorkspaceStatus(
+        '目前有雲端操作正在進行，請完成後再試。',
+        'error'
+    );
+    return;
+}
+
     /*
      * 載入 Workspace
      * 會覆蓋目前 標準程序工作區。
@@ -20578,9 +21684,28 @@ async function loadCloudWorkspaceIntoSystem(
         return;
     }
 
-    try {
-        setCloudWorkspaceStatus(
-            '正在讀取雲端工作資料...',
+standardProcedureCloudOperation =
+    'workspace-load';
+
+const originalMarkup =
+    button?.innerHTML ?? '';
+
+const originalDisabled =
+    button?.disabled ?? false;
+
+if (button) {
+    button.disabled = true;
+
+    button.innerHTML = `
+        <i class="fas fa-spinner fa-spin"
+           aria-hidden="true"></i>
+        <span>正在載入...</span>
+    `;
+}
+
+try {
+    setCloudWorkspaceStatus(
+        '正在讀取雲端工作資料...',
             'info'
         );
 
@@ -20709,7 +21834,8 @@ if (
 const hydratedPayload =
     hydrateStandardProcedureCloudPayload(
         sourcePayload,
-        cloudFileMap
+        cloudFileMap,
+        workspaceId
     );
 
 await applyStandardProcedureWorkspaceData(
@@ -20736,6 +21862,8 @@ await applyStandardProcedureWorkspaceData(
             Number(
                 workspace.revision
             ) || 1;
+
+        standardProcedureWorkspaceTargetOnly = false;
 
         updateActiveCloudWorkspaceUI();
 
@@ -20808,13 +21936,930 @@ await applyStandardProcedureWorkspaceData(
                 '雲端工作資料中的附件資訊不完整。'
         };
 
-        setCloudWorkspaceStatus(
-            messages[code] ||
-            code ||
-            '載入雲端工作資料失敗。',
-            'error'
+setCloudWorkspaceStatus(
+    messages[code] ||
+    code ||
+    '載入雲端工作資料失敗。',
+    'error'
+);
+
+    } finally {
+
+        if (
+            button &&
+            button.isConnected
+        ) {
+            button.innerHTML =
+                originalMarkup;
+
+            button.disabled =
+                originalDisabled;
+        }
+
+        if (
+            standardProcedureCloudOperation ===
+            'workspace-load'
+        ) {
+            standardProcedureCloudOperation = '';
+        }
+    }
+}
+
+/*
+ * Cloud Preview 附件來源完整封裝。
+ *
+ * 1. 本機 DataURL 直接保留。
+ * 2. 雲端附件重新取得有效 Signed URL。
+ * 3. 下載後轉成完整 DataURL。
+ * 4. 相同來源附件只下載一次。
+ * 5. 不修改目前工作區的正式資料。
+ */
+async function materializeStandardProcedurePreviewSources(
+    value,
+    cache = new Map()
+) {
+    if (!value || typeof value !== 'object') {
+        return value;
+    }
+
+    if (Array.isArray(value)) {
+        const output = [];
+
+        for (const item of value) {
+            output.push(
+                await materializeStandardProcedurePreviewSources(
+                    item,
+                    cache
+                )
+            );
+        }
+
+        return output;
+    }
+
+    /*
+     * 已有完整 DataURL，不需要再次下載。
+     */
+if (isStandardProcedureLocalCloudAttachment(value)) {
+    const {
+        cloud_file_id,
+        cloud_workspace_id,
+        signed_url,
+        is_cloud_file,
+        ...localAttachment
+    } = value;
+
+    return localAttachment;
+}
+
+    if (value.cloud_file_id) {
+        const fileId =
+            String(value.cloud_file_id).trim();
+
+        const sourceId =
+            String(
+                value.cloud_workspace_id || ''
+            ).trim();
+
+        if (!fileId || !sourceId) {
+            throw new Error(
+                'CLOUD_ATTACHMENT_SOURCE_MISSING'
+            );
+        }
+
+        const key =
+            `${sourceId}:${fileId}`;
+
+        if (!cache.has(key)) {
+            cache.set(key, (async () => {
+
+                /*
+                 * 重新向來源 Workspace
+                 * 取得有效附件讀取網址。
+                 */
+                const signedFiles =
+                    await loadCloudWorkspaceSignedFiles(
+                        sourceId,
+                        [{ id: fileId }]
+                    );
+
+                const signed =
+                    signedFiles.get(fileId);
+
+                if (!signed?.signed_url) {
+                    throw new Error(
+                        'WORKSPACE_SIGNED_READ_INVALID'
+                    );
+                }
+
+                const response =
+                    await fetch(
+                        signed.signed_url,
+                        {
+                            method: 'GET',
+                            cache: 'no-store'
+                        }
+                    );
+
+                if (!response.ok) {
+                    throw new Error(
+                        'CLOUD_ATTACHMENT_READ_FAILED'
+                    );
+                }
+
+                const blob =
+                    await response.blob();
+
+                if (
+                    blob.size < 1 ||
+                    blob.size > 5 * 1024 * 1024
+                ) {
+                    throw new Error(
+                        'WORKSPACE_FILE_SIZE_INVALID'
+                    );
+                }
+
+                if (
+                    Number(value.size) > 0 &&
+                    Number(value.size) !== blob.size
+                ) {
+                    throw new Error(
+                        'CLOUD_ATTACHMENT_SIZE_MISMATCH'
+                    );
+                }
+
+                const mime =
+                    getStandardProcedureCloudAttachmentMimeType(
+                        value
+                    );
+
+                const typed =
+                    new Blob(
+                        [blob],
+                        { type: mime }
+                    );
+
+                return await new Promise(
+                    (resolve, reject) => {
+                        const reader =
+                            new FileReader();
+
+                        reader.onload = () =>
+                            resolve(
+                                String(
+                                    reader.result || ''
+                                )
+                            );
+
+                        reader.onerror = () =>
+                            reject(
+                                new Error(
+                                    'CLOUD_ATTACHMENT_READ_FAILED'
+                                )
+                            );
+
+                        reader.readAsDataURL(
+                            typed
+                        );
+                    }
+                );
+            })());
+        }
+
+        const dataUrl =
+            await cache.get(key);
+
+        if (!dataUrl.startsWith('data:')) {
+            throw new Error(
+                'CLOUD_ATTACHMENT_READ_FAILED'
+            );
+        }
+
+        /*
+         * 新 Preview 不應引用
+         * 原 Workspace 的附件 ID。
+         */
+        const {
+            cloud_file_id,
+            cloud_workspace_id,
+            signed_url,
+            is_cloud_file,
+            fileContent,
+            dataURL,
+            data,
+            url,
+            ...metadata
+        } = value;
+
+        return {
+            ...metadata,
+            fileContent: dataUrl
+        };
+    }
+
+    const output = {};
+
+    for (
+        const [key, child]
+        of Object.entries(value)
+    ) {
+        output[key] =
+            await materializeStandardProcedurePreviewSources(
+                child,
+                cache
+            );
+    }
+
+    return output;
+}
+
+/*
+ * =========================================================
+ * OSSPS｜Cloud Workspace 跨來源附件準備
+ *
+ * 第四階段第二部分 4B-1
+ *
+ * 1. 完整 DataURL：保留。
+ * 2. 目標 Workspace 既有附件：保留 ID。
+ * 3. 外來 Workspace 附件：下載並轉 DataURL。
+ * 4. 來源不明或附件未登記：安全拒絕。
+ * 5. 同一來源附件使用 Cache 避免重複下載。
+ * 6. 不修改目前正式工作區資料。
+ *
+ * 此函式只負責準備附件來源。
+ * SHA-256 去重與正式儲存於後續階段接入。
+ * =========================================================
+ */
+async function materializeStandardProcedureWorkspaceTransferSources(
+    value,
+    targetWorkspaceId = '',
+    targetFiles = [],
+    cache = new Map()
+) {
+
+    const targetId =
+        String(targetWorkspaceId || '').trim();
+
+    const registered =
+        new Set(
+            (
+                Array.isArray(targetFiles)
+                    ? targetFiles
+                    : []
+            )
+                .map(item =>
+                    String(
+                        item?.id ||
+                        item?.file_id ||
+                        ''
+                    ).trim()
+                )
+                .filter(Boolean)
+        );
+
+    async function walk(node) {
+
+        if (
+            !node ||
+            typeof node !== 'object'
+        ) {
+            return node;
+        }
+
+        if (Array.isArray(node)) {
+
+            const output = [];
+
+            for (const item of node) {
+                output.push(
+                    await walk(item)
+                );
+            }
+
+            return output;
+        }
+
+        /*
+         * 本機已有完整 DataURL：
+         * 不需要下載來源 Workspace。
+         */
+        if (
+            isStandardProcedureLocalCloudAttachment(
+                node
+            )
+        ) {
+            return {
+                ...node
+            };
+        }
+
+        const fileId =
+            String(
+                node.cloud_file_id || ''
+            ).trim();
+
+        if (fileId) {
+
+            const sourceId =
+                String(
+                    node.cloud_workspace_id || ''
+                ).trim();
+
+            /*
+             * 目標 Workspace 已登記：
+             * 重用既有附件 ID。
+             *
+             * 同時容許舊資料未標記來源，
+             * 但前提是目標清單確實有此 ID。
+             */
+            if (
+                targetId &&
+                registered.has(fileId) &&
+                (
+                    !sourceId ||
+                    sourceId === targetId
+                )
+            ) {
+                return {
+                    ...node
+                };
+            }
+
+            /*
+             * 其他來源的附件若沒有來源 ID，
+             * 不能猜測其所屬 Workspace。
+             */
+            if (!sourceId) {
+                throw new Error(
+                    'CLOUD_ATTACHMENT_SOURCE_MISSING'
+                );
+            }
+
+            /*
+             * 宣稱屬於目標 Workspace，
+             * 但目標附件清單找不到此 ID。
+             */
+            if (
+                targetId &&
+                sourceId === targetId
+            ) {
+                throw new Error(
+                    'WORKSPACE_FOREIGN_ATTACHMENT'
+                );
+            }
+
+            /*
+             * 外來附件：
+             * 沿用已完成的 Preview 來源下載函式，
+             * 取得完整 DataURL。
+             *
+             * 同時沿用原本：
+             * Signed URL、大小驗證及 Cache。
+             */
+            return await materializeStandardProcedurePreviewSources(
+                node,
+                cache
+            );
+        }
+
+        /*
+         * 一般資料物件：
+         * 遞迴處理內部附件。
+         */
+        const output = {};
+
+        for (
+            const [key, child]
+            of Object.entries(node)
+        ) {
+            output[key] =
+                await walk(child);
+        }
+
+        return output;
+    }
+
+    return await walk(value);
+}
+
+/*
+ * OSSPS｜4B-2
+ * 計算附件原始位元組 SHA-256。
+ */
+async function sha256StandardProcedureWorkspaceBytes(bytes) {
+
+    if (!globalThis.crypto?.subtle) {
+        throw new Error(
+            'WORKSPACE_SHA256_UNAVAILABLE'
         );
     }
+
+    const digest =
+        await crypto.subtle.digest(
+            'SHA-256',
+            bytes
+        );
+
+    return Array.from(
+        new Uint8Array(digest),
+        byte =>
+            byte.toString(16).padStart(2, '0')
+    ).join('');
+}
+
+/*
+ * =========================================================
+ * OSSPS｜4B-2 Workspace SHA-256 附件去重
+ *
+ * 1. 計算待上傳 DataURL 的 SHA-256。
+ * 2. 篩選 B 中大小及 MIME 相符的附件。
+ * 3. 取得 B 既有附件的 Signed URL。
+ * 4. 下載並計算實際內容的 SHA-256。
+ * 5. 相同內容重用 B 的 cloud_file_id。
+ * 6. 不同內容不重用。
+ * 7. 不修改目前工作區或雲端 Payload。
+ *
+ * 回傳 Map：
+ * DataURL → B 既有 cloud_file_id
+ * =========================================================
+ */
+async function buildStandardProcedureWorkspaceReuseIdMap(
+    preparedPayload,
+    targetWorkspaceId,
+    targetFiles = []
+) {
+    const reuseMap = new Map();
+
+    const newFiles = Array.from(
+        collectUniqueStandardProcedureCloudAttachments(
+            preparedPayload
+        ).values()
+    );
+
+    if (newFiles.length === 0) {
+        return reuseMap;
+    }
+
+    const workspaceId =
+        String(targetWorkspaceId || '').trim();
+
+    if (!workspaceId) {
+        throw new Error(
+            'WORKSPACE_TARGET_INVALID'
+        );
+    }
+
+    const wantedByFingerprint = new Map();
+    const wantedSizeAndMime = new Set();
+
+    /*
+     * 先計算本次待上傳附件的 SHA-256。
+     */
+    for (const file of newFiles) {
+
+        const bytes =
+            standardProcedureDataUrlToUint8Array(
+                file.data
+            );
+
+        if (
+            bytes.length < 1 ||
+            bytes.length > 5 * 1024 * 1024
+        ) {
+            throw new Error(
+                'WORKSPACE_FILE_SIZE_INVALID'
+            );
+        }
+
+        const mime =
+            String(file.type || '')
+                .toLowerCase()
+                .trim();
+
+        const fingerprint = [
+            bytes.length,
+            mime,
+            await sha256StandardProcedureWorkspaceBytes(
+                bytes
+            )
+        ].join(':');
+
+        if (!wantedByFingerprint.has(fingerprint)) {
+            wantedByFingerprint.set(
+                fingerprint,
+                []
+            );
+        }
+
+        wantedByFingerprint
+            .get(fingerprint)
+            .push(file.data);
+
+        wantedSizeAndMime.add(
+            `${bytes.length}:${mime}`
+        );
+    }
+
+    /*
+     * 只挑選 B 中大小及 MIME 可能相符的附件。
+     * 避免把全部附件重新下載。
+     */
+    const candidates = Array.from(
+        new Map(
+            (
+                Array.isArray(targetFiles)
+                    ? targetFiles
+                    : []
+            )
+                .filter(file => {
+
+                    const id =
+                        String(
+                            file?.id ||
+                            file?.file_id ||
+                            ''
+                        ).trim();
+
+                    const size =
+                        Number(
+                            file?.file_size ??
+                            file?.size ??
+                            0
+                        );
+
+                    const mime =
+                        String(
+                            file?.mime_type ||
+                            file?.mime ||
+                            file?.type ||
+                            ''
+                        )
+                            .toLowerCase()
+                            .trim();
+
+                    return (
+                        id &&
+                        wantedSizeAndMime.has(
+                            `${size}:${mime}`
+                        )
+                    );
+                })
+                .map(file => [
+                    String(
+                        file.id || file.file_id
+                    ).trim(),
+                    file
+                ])
+        ).values()
+    );
+
+    if (candidates.length === 0) {
+        return reuseMap;
+    }
+
+    /*
+     * 沿用現有 Cloud Workspace Signed URL 機制。
+     */
+    const signedFiles =
+        await loadCloudWorkspaceSignedFiles(
+            workspaceId,
+            candidates.map(file => ({
+                id: file.id || file.file_id
+            }))
+        );
+
+    /*
+     * 比對 B 的實際附件內容。
+     */
+    for (const candidate of candidates) {
+
+        const fileId =
+            String(
+                candidate.id ||
+                candidate.file_id
+            ).trim();
+
+        const signed =
+            signedFiles.get(fileId);
+
+        if (!signed?.signed_url) {
+            throw new Error(
+                'WORKSPACE_SIGNED_READ_INVALID'
+            );
+        }
+
+        const response =
+            await fetch(
+                signed.signed_url,
+                {
+                    method: 'GET',
+                    cache: 'no-store'
+                }
+            );
+
+        if (!response.ok) {
+            throw new Error(
+                'CLOUD_ATTACHMENT_READ_FAILED'
+            );
+        }
+
+        const blob =
+            await response.blob();
+
+        const expectedSize =
+            Number(
+                candidate.file_size ??
+                candidate.size ??
+                0
+            );
+
+        if (
+            blob.size < 1 ||
+            blob.size > 5 * 1024 * 1024 ||
+            blob.size !== expectedSize
+        ) {
+            throw new Error(
+                'CLOUD_ATTACHMENT_SIZE_MISMATCH'
+            );
+        }
+
+        const mime =
+            String(
+                candidate.mime_type ||
+                candidate.mime ||
+                candidate.type ||
+                ''
+            )
+                .toLowerCase()
+                .trim();
+
+        const fingerprint = [
+            blob.size,
+            mime,
+            await sha256StandardProcedureWorkspaceBytes(
+                await blob.arrayBuffer()
+            )
+        ].join(':');
+
+        const matches =
+            wantedByFingerprint.get(
+                fingerprint
+            ) || [];
+
+        /*
+         * 完全相同：
+         * 記錄 B 已有的附件 ID。
+         */
+        for (const dataUrl of matches) {
+
+            if (!reuseMap.has(dataUrl)) {
+                reuseMap.set(
+                    dataUrl,
+                    fileId
+                );
+            }
+        }
+    }
+
+    return reuseMap;
+}
+
+/*
+ * OSSPS｜4B-4
+ * Workspace 儲存成功後更新本機附件來源。
+ *
+ * 不清空工作階段、不改程序書 ID。
+ * 如使用者在上傳期間修改工作區，
+ * 不覆蓋新修改。
+ */
+async function rebindStandardProcedureSessionWorkspaceAttachments(
+    workspaceId,
+    originalStandards,
+    expectedRevision
+) {
+    const result = await cloudWorkspaceRequest({
+        action: 'load',
+        system_type: OSH_CLOUD_SYSTEM_TYPE,
+        workspace_id: workspaceId
+    });
+
+    const workspace = result?.workspace;
+
+    if (
+        String(workspace?.id || '') !== String(workspaceId) ||
+        Number(workspace?.revision) !== Number(expectedRevision) ||
+        workspace?.system_type !== OSH_CLOUD_SYSTEM_TYPE ||
+        workspace?.payload?.exportType !== 'unified-data' ||
+        !Array.isArray(workspace?.payload?.standards)
+    ) {
+        throw new Error('WORKSPACE_REBIND_FAILED');
+    }
+
+    /*
+     * 僅取得正式 Payload 實際引用的附件。
+     * 不重新下載附件實體。
+     */
+    const referenced = new Set();
+
+    function collectFileIds(value) {
+        if (!value || typeof value !== 'object') {
+            return;
+        }
+
+        if (Array.isArray(value)) {
+            value.forEach(collectFileIds);
+            return;
+        }
+
+        if (value.cloud_file_id) {
+            referenced.add(String(value.cloud_file_id));
+            return;
+        }
+
+        Object.values(value).forEach(collectFileIds);
+    }
+
+    collectFileIds(workspace.payload);
+
+    const allFiles = Array.isArray(workspace.files)
+        ? workspace.files
+        : [];
+
+    const files = allFiles
+        .filter(file =>
+            referenced.has(
+                String(file?.id || file?.file_id || '')
+            )
+        )
+        .map(file => ({
+            ...file,
+            id: String(file.id || file.file_id)
+        }));
+
+    if (files.length !== referenced.size) {
+        throw new Error('WORKSPACE_REBIND_FAILED');
+    }
+
+    const signedFiles = await loadCloudWorkspaceSignedFiles(
+        workspaceId,
+        files
+    );
+
+    const hydrated = hydrateStandardProcedureCloudPayload(
+        workspace.payload,
+        signedFiles,
+        workspaceId
+    );
+
+    /*
+     * 防止上傳期間本機資料被修改，
+     * 或雲端回傳的程序書清單不同。
+     */
+    if (
+        JSON.stringify(standards) !==
+            JSON.stringify(originalStandards) ||
+        hydrated.standards.length !==
+            originalStandards.length ||
+        hydrated.standards.some((item, index) =>
+            String(item?.id) !==
+            String(originalStandards[index]?.id)
+        )
+    ) {
+        throw new Error('WORKSPACE_SESSION_CHANGED');
+    }
+
+    /*
+     * 僅更新正式 Session 資料。
+     * 原本分類、程序書編輯器及顯示狀態不動。
+     */
+    standards = hydrated.standards;
+}
+
+/*
+ * 確認目前附件來源能否安全寫入目標 Workspace。
+ *
+ * DataURL：允許，後續依原流程上傳。
+ * 目標已登記的 cloud_file_id：允許。
+ * 其他 Workspace 的 cloud_file_id：拒絕。
+ * 沒有合法 cloud_file_id 的外部網址：拒絕。
+ */
+function verifyStandardProcedureWorkspaceAttachmentSources(
+    value,
+    files,
+    targetWorkspaceId = ''
+) {
+    const registered = new Set(
+        (Array.isArray(files) ? files : [])
+            .map(item =>
+                String(
+                    item?.id ||
+                    item?.file_id ||
+                    ''
+                ).trim()
+            )
+            .filter(Boolean)
+    );
+
+    const targetId =
+        String(targetWorkspaceId || '').trim();
+
+    function walk(item) {
+        if (!item || typeof item !== 'object') {
+            return;
+        }
+
+        if (Array.isArray(item)) {
+            item.forEach(walk);
+            return;
+        }
+
+        if (
+            (
+                typeof item.name === 'string' &&
+                item.name.trim()
+            ) ||
+            !!item.cloud_file_id ||
+            item.isExternalFile === true
+        ) {
+            const dataURL =
+                getStandardProcedureCloudAttachmentDataUrl(
+                    item
+                );
+
+            /*
+             * 已有完整 DataURL：
+             * 可以在後續流程重新上傳。
+             */
+            if (dataURL) {
+                return;
+            }
+
+            const fileId =
+                String(
+                    item.cloud_file_id || ''
+                ).trim();
+
+            const sourceId =
+                String(
+                    item.cloud_workspace_id || ''
+                ).trim();
+
+            /*
+             * 舊雲端附件必須屬於目標 Workspace。
+             */
+            if (fileId) {
+                if (
+                    !registered.has(fileId) ||
+                    (
+                        targetId &&
+                        sourceId &&
+                        sourceId !== targetId
+                    )
+                ) {
+                    throw new Error(
+                        'WORKSPACE_FOREIGN_ATTACHMENT'
+                    );
+                }
+
+                return;
+            }
+
+            /*
+             * 不允許將臨時網址直接寫入 Workspace。
+             */
+            const hasTemporaryUrl = [
+                item.fileContent,
+                item.signed_url,
+                item.url,
+                item.dataURL,
+                item.data
+            ].some(candidate =>
+                /^(https?:\/\/|blob:)/i.test(
+                    String(candidate || '').trim()
+                )
+            );
+
+            if (hasTemporaryUrl) {
+                throw new Error(
+                    'WORKSPACE_EXTERNAL_ATTACHMENT'
+                );
+            }
+
+            /*
+             * 明確標記為附件，
+             * 卻沒有可用檔案內容。
+             */
+            if (item.isExternalFile === true) {
+                throw new Error(
+                    'WORKSPACE_ATTACHMENT_CONTENT_MISSING'
+                );
+            }
+        }
+
+        Object.values(item).forEach(walk);
+    }
+
+    walk(value);
 }
 
 /*
@@ -20897,6 +22942,17 @@ if (
     return;
 }
 
+if (standardProcedureCloudOperation) {
+    setCloudWorkspaceStatus(
+        '目前有雲端操作正在進行，請完成後再試。',
+        'error'
+    );
+    return;
+}
+
+standardProcedureCloudOperation =
+    'workspace-save';
+
     const button =
         document.getElementById(
             'cloud-workspace-save-btn'
@@ -20926,15 +22982,8 @@ button.classList.add(
 );
 
             button.innerHTML = `
-<span class="
-    w-3.5 h-3.5
-    shrink-0
-    rounded-full
-                    border-2
-                    border-white/40
-                    border-t-white
-                    animate-spin
-                "></span>
+<i class="fas fa-spinner fa-spin text-[13px] leading-none"
+   aria-hidden="true"></i>
 
                 <span>
                     正在儲存...
@@ -20948,20 +22997,103 @@ button.classList.add(
  * 標準程序 unified-data。
  */
 const localPayload =
-    buildStandardProcedureExportData();
+    JSON.parse(
+        JSON.stringify(
+            buildStandardProcedureExportData()
+        )
+    );
+
+/*
+ * 儲存前重新取得目標 Workspace 最新狀態。
+ * 避免使用過期 Revision 或引用其他 Workspace 附件。
+ */
+const targetResult =
+    await cloudWorkspaceRequest({
+        action: 'load',
+        system_type: OSH_CLOUD_SYSTEM_TYPE,
+        workspace_id: activeCloudWorkspaceId
+    });
+
+const targetWorkspace =
+    targetResult?.workspace;
+
+if (
+    !targetWorkspace?.id ||
+    String(
+        targetWorkspace.system_type || ''
+    ) !== OSH_CLOUD_SYSTEM_TYPE ||
+    String(targetWorkspace.id) !==
+        String(activeCloudWorkspaceId)
+) {
+    throw new Error(
+        'WORKSPACE_TARGET_INVALID'
+    );
+}
+
+if (targetWorkspace.enabled === false) {
+    throw new Error(
+        'WORKSPACE_DISABLED'
+    );
+}
+
+if (
+    Number(targetWorkspace.revision) !==
+    Number(activeCloudWorkspaceRevision)
+) {
+    throw new Error(
+        'WORKSPACE_REVISION_CONFLICT'
+    );
+}
+
+/*
+ * 4B-3：
+ * 將外來 Workspace 附件準備成完整 DataURL。
+ */
+setCloudWorkspaceStatus(
+    '正在確認附件來源與內容...',
+    'info'
+);
+
+const preparedPayload =
+    await materializeStandardProcedureWorkspaceTransferSources(
+        localPayload,
+        activeCloudWorkspaceId,
+        targetWorkspace.files
+    );
+
+/*
+ * SHA-256 比對目標 Workspace。
+ * 找到相同內容就重用既有 ID。
+ */
+const newCloudFileIdMap =
+    await buildStandardProcedureWorkspaceReuseIdMap(
+        preparedPayload,
+        activeCloudWorkspaceId,
+        targetWorkspace.files
+    );
+
+/*
+ * 確認轉換完成的附件來源安全。
+ */
+verifyStandardProcedureWorkspaceAttachmentSources(
+    preparedPayload,
+    targetWorkspace.files,
+    activeCloudWorkspaceId
+);
 
 const attachmentMap =
     collectUniqueStandardProcedureCloudAttachments(
-        localPayload
+        preparedPayload
     );
 
+/*
+ * 已有對應 cloud_file_id 的附件不再上傳。
+ * 只有真正新增的附件才進入上傳程序。
+ */
 const uniqueAttachments =
-    Array.from(
-        attachmentMap.values()
+    Array.from(attachmentMap.values()).filter(
+        file => !newCloudFileIdMap.has(file.data)
     );
-
-        const newCloudFileIdMap =
-            new Map();
 
         /*
          * 有新附件才上傳。
@@ -21001,7 +23133,7 @@ const uniqueAttachments =
          */
 const cloudPayload =
     buildStandardProcedureWorkspaceSavePayload(
-        localPayload,
+        preparedPayload,
         newCloudFileIdMap
     );
 
@@ -21042,13 +23174,15 @@ const cloudPayload =
         const savedWorkspace =
             result?.workspace;
 
-        if (
-            !savedWorkspace?.id
-        ) {
-            throw new Error(
-                'WORKSPACE_SAVE_INVALID'
-            );
-        }
+if (
+    !savedWorkspace?.id ||
+    String(savedWorkspace.id) !==
+        String(activeCloudWorkspaceId)
+) {
+    throw new Error(
+        'WORKSPACE_SAVE_INVALID'
+    );
+}
 
         /*
          * =====================================================
@@ -21065,43 +23199,82 @@ const cloudPayload =
                 1
             );
 
-        if (
-            savedWorkspace.workspace_name
-        ) {
-            activeCloudWorkspaceName =
-                savedWorkspace.workspace_name;
-        }
-
-updateActiveCloudWorkspaceUI();
+if (
+    savedWorkspace.workspace_name
+) {
+    activeCloudWorkspaceName =
+        savedWorkspace.workspace_name;
+}
 
 /*
- * 雲端已正式完成本次儲存，
- * 標準程序目前沒有尚未儲存的畫面草稿。
+ * 4B-4：
+ * 正式 Save 已成功後，
+ * 才更新本機附件來源。
+ *
+ * 後續來源更新失敗，
+ * 不視為原本雲端 Save 失敗。
  */
-reportDraftDirty =
-    false;
+const mustRebind =
+    standardProcedureWorkspaceTargetOnly ||
+    attachmentMap.size > 0;
+
+standardProcedureWorkspaceTargetOnly = false;
+
+updateActiveCloudWorkspaceUI();
 
 /*
  * Cloud Workspace Save
  * 不等於正式 JSON 已匯出。
  */
-sessionNeedsExport =
-    true;
+sessionNeedsExport = true;
 
-        setCloudWorkspaceStatus(
-            `已儲存「${activeCloudWorkspaceName}」Revision ${activeCloudWorkspaceRevision}。`,
-            'success'
+let rebindFailed = false;
+
+if (mustRebind) {
+    try {
+        await rebindStandardProcedureSessionWorkspaceAttachments(
+            activeCloudWorkspaceId,
+            localPayload.standards,
+            activeCloudWorkspaceRevision
         );
 
-        showToast(
-            `雲端工作資料已儲存為 Revision ${activeCloudWorkspaceRevision}`
-        );
+    } catch (rebindError) {
+        rebindFailed = true;
 
-        /*
-         * 重新整理 Workspace 清單，
-         * 立即顯示最新版 Revision。
-         */
-        await loadCloudWorkspaceList();
+        console.warn(
+            'Workspace 已儲存，但本機附件來源刷新失敗：',
+            rebindError
+        );
+    }
+}
+
+/*
+ * 清單重新整理失敗，
+ * 不應觸發已完成 Save 的附件回滾。
+ */
+try {
+    await loadCloudWorkspaceList();
+
+} catch (listError) {
+    console.warn(
+        'Workspace 清單刷新失敗：',
+        listError
+    );
+}
+
+setCloudWorkspaceStatus(
+    rebindFailed
+        ? '雲端儲存已成功，但本機附件連結尚未更新；請重新載入這份工作資料後再繼續操作。'
+        : `已儲存「${activeCloudWorkspaceName}」Revision ${activeCloudWorkspaceRevision}。`,
+    rebindFailed ? 'error' : 'success'
+);
+
+showToast(
+    rebindFailed
+        ? '雲端已儲存，請重新載入工作資料以更新附件來源。'
+        : `雲端工作資料已儲存為 Revision ${activeCloudWorkspaceRevision}`,
+    rebindFailed ? 'error' : 'success'
+);
 
     } catch (error) {
 
@@ -21222,7 +23395,40 @@ sessionNeedsExport =
                 '附件上傳失敗，請稍後重試。',
 
             WORKSPACE_FILE_REGISTER_FAILED:
-                '附件上傳失敗，請稍後重試。'
+                '附件上傳失敗，請稍後重試。',
+
+            WORKSPACE_TARGET_INVALID:
+                '目標 Workspace 資料不完整或系統類型不符合。',
+
+WORKSPACE_FOREIGN_ATTACHMENT:
+    '附件來源與目標工作資料不一致，且未能完成安全轉換，請確認來源附件可正常讀取。',
+
+            WORKSPACE_EXTERNAL_ATTACHMENT:
+                '附件仍使用臨時網址，無法安全寫入目標 Workspace，請先使用完整附件資料。',
+
+            WORKSPACE_ATTACHMENT_CONTENT_MISSING:
+                '部分附件缺少完整檔案內容，無法安全儲存至雲端。',
+
+            CLOUD_ATTACHMENT_SOURCE_MISSING:
+                '附件缺少來源工作資料資訊，無法安全轉存。',
+
+            WORKSPACE_SIGNED_READ_FAILED:
+                '無法取得雲端附件讀取權限。',
+
+            WORKSPACE_SIGNED_READ_INVALID:
+                '雲端附件讀取資訊不完整。',
+
+            CLOUD_ATTACHMENT_READ_FAILED:
+                '雲端附件下載失敗，請稍後重試。',
+
+            CLOUD_ATTACHMENT_SIZE_MISMATCH:
+                '雲端附件大小與原始紀錄不一致。',
+
+            WORKSPACE_ATTACHMENT_DATA_INVALID:
+                '附件內容格式不正確，無法安全儲存。',
+
+            WORKSPACE_SHA256_UNAVAILABLE:
+                '目前瀏覽器無法執行附件 SHA-256 驗證，請使用安全連線開啟系統。'
         };
 
         setCloudWorkspaceStatus(
@@ -21294,6 +23500,16 @@ sessionNeedsExport =
         }
 
     } finally {
+
+    if (
+        standardProcedureCloudOperation ===
+        'workspace-save'
+    ) {
+        standardProcedureCloudOperation = '';
+    }
+
+    /*
+     * 無論成功或失敗，
 
         /*
          * 無論成功或失敗，
@@ -21957,6 +24173,16 @@ function clearReportDisplayToBlank() {
             'download-word-link'
         );
 
+const imageViewer =
+    document.getElementById(
+        'image-file-viewer'
+    );
+
+const imageContent =
+    document.getElementById(
+        'image-file-content'
+    );
+
     if (fileOverlay) {
         fileOverlay.style.display = 'none';
     }
@@ -22450,11 +24676,15 @@ function openLoginModal() {
             if(file) processFile(file);
         }
 
-        function processFile(file) {
-            const ext = file.name.split('.').pop().toLowerCase();
-            if(!['pdf', 'doc', 'docx'].includes(ext)) {
-                return showToast("僅支援 PDF 或 Word 格式", "error");
-            }
+function processFile(file) {
+    const ext = file.name.split('.').pop().toLowerCase();
+
+    if (!['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png'].includes(ext)) {
+        return showToast(
+            "僅支援 PDF、Word、JPG、JPEG 或 PNG 格式",
+            "error"
+        );
+    }
 
             const reader = new FileReader();
             document.getElementById('loading-text').innerText = "正在上傳檔案...";
@@ -23751,18 +25981,8 @@ async function changeAdminPassword() {
 }
 
 function resetReportToBlank(silent = false) {
-    const fileOverlay =
-        document.getElementById(
-            'file-preview-overlay'
-        );
-
-    const hasExternalFile =
-        fileOverlay &&
-        fileOverlay.style.display === 'block';
-
     const hasContent =
-        hasCurrentReportContent() ||
-        hasExternalFile;
+        hasCurrentReportContent();
 
     if (!hasContent) {
         if (!silent) {
@@ -23807,10 +26027,6 @@ if (!silent) {
 }
 
 function hasCurrentReportContent() {
-    const overlay = document.getElementById('file-preview-overlay');
-    if (overlay && overlay.style.display === 'block') {
-        return false;
-    }
 
     const fieldName = document.getElementById('field-name')?.innerText.trim() || '';
     const fieldType = document.getElementById('field-type')?.innerText.trim() || '';
@@ -24394,8 +26610,343 @@ showToast(
 
     } // ← 關閉 generateAIReport
 
+let currentExternalFileForPrint = null;
+
+/* =========================================================
+   OSSPS｜獨立附件預覽縮放
+   PDF 使用既有 PDF.js 縮放
+   圖片使用等比例寬度縮放
+========================================================= */
+
+const OSSPS_IMAGE_ZOOM_LEVELS = [
+    0.5, 0.75, 1, 1.25,
+    1.5, 2, 2.5, 3
+];
+
+let osspsImageZoomIndex = 2;
+
+
+function updateOsspsFileZoomLabel() {
+
+    const controls =
+        document.getElementById(
+            'ossps-file-zoom-actions'
+        );
+
+    const label =
+        document.getElementById(
+            'ossps-file-zoom-label'
+        );
+
+    const type =
+        String(
+            currentExternalFileForPrint?.fileType || ''
+        ).toLowerCase();
+
+const isPdf = type === 'pdf';
+
+const isImage =
+    ['jpg', 'jpeg', 'png'].includes(type);
+
+const isDocx =
+    type === 'docx';
+
+if (controls) {
+    controls.style.display =
+        isPdf || isImage || isDocx
+            ? 'inline-flex'
+            : 'none';
+}
+
+const scale = isPdf
+    ? getMobilePdfZoomScale()
+    : isDocx
+        ? osspsDocxZoom
+        : OSSPS_IMAGE_ZOOM_LEVELS[
+            osspsImageZoomIndex
+        ];
+
+    if (label) {
+        label.textContent =
+            `${Math.round(scale * 100)}%`;
+    }
+}
+
+
+function changeOsspsAttachmentZoom(direction) {
+
+    const type =
+        String(
+            currentExternalFileForPrint?.fileType || ''
+        ).toLowerCase();
+
+    if (type === 'pdf') {
+
+        changeMobilePdfZoom(direction);
+
+        updateOsspsFileZoomLabel();
+        return;
+    }
+
+if (type === 'docx') {
+
+    if (!osspsDocxReady) {
+        return;
+    }
+
+    osspsDocxAutoFit = false;
+
+    const factor =
+        direction > 0
+            ? 1.2
+            : 1 / 1.2;
+
+    setOsspsDocxZoom(
+        osspsDocxZoom * factor
+    );
+
+    return;
+}    
+
+    if (
+        !['jpg', 'jpeg', 'png'].includes(type)
+    ) {
+        return;
+    }
+
+    osspsImageZoomIndex = Math.max(
+        0,
+        Math.min(
+            OSSPS_IMAGE_ZOOM_LEVELS.length - 1,
+            osspsImageZoomIndex + direction
+        )
+    );
+
+    const scale =
+        OSSPS_IMAGE_ZOOM_LEVELS[
+            osspsImageZoomIndex
+        ];
+
+    const image =
+        document.getElementById(
+            'image-file-content'
+        );
+
+    if (image) {
+
+        image.style.maxWidth = 'none';
+
+        image.style.width =
+            `${85 * scale}%`;
+
+        image.style.height = 'auto';
+    }
+
+    updateOsspsFileZoomLabel();
+}
+
+
+/*
+ * 只有在附件預覽視窗內，攔截 Ctrl + 滾輪。
+ *
+ * 其他系統區域仍保留瀏覽器原有操作。
+ */
+document.addEventListener(
+    'wheel',
+    event => {
+
+        if (!event.ctrlKey) {
+            return;
+        }
+
+        const overlay =
+            document.getElementById(
+                'file-preview-overlay'
+            );
+
+        if (
+            !overlay ||
+            overlay.style.display !== 'flex' ||
+            !overlay.contains(event.target)
+        ) {
+            return;
+        }
+
+        const type =
+            String(
+                currentExternalFileForPrint?.fileType || ''
+            ).toLowerCase();
+
+        if (
+            !['pdf', 'jpg', 'jpeg', 'png', 'docx']
+    .includes(type)
+        ) {
+            return;
+        }
+
+        event.preventDefault();
+        event.stopPropagation();
+
+        if (event.deltaY === 0) {
+            return;
+        }
+
+        changeOsspsAttachmentZoom(
+            event.deltaY < 0 ? 1 : -1
+        );
+
+    },
+    {
+        capture: true,
+        passive: false
+    }
+);
+
+function printActiveReportOrFile() {
+
+    const overlay =
+        document.getElementById(
+            'file-preview-overlay'
+        );
+
+    const file =
+        currentExternalFileForPrint;
+
+    const isFileOpen =
+        overlay &&
+        overlay.style.display === 'flex';
+
+    /*
+     * 沒有開啟附件視窗：
+     * 完全保留一般程序書的原始列印。
+     */
+    if (!isFileOpen || !file) {
+
+        document.body.classList.remove(
+            'ossps-attachment-print'
+        );
+
+        window.print();
+        return;
+    }
+
+    const type =
+        String(file.fileType || '')
+            .toLowerCase();
+
+    if (
+        !['pdf', 'jpg', 'jpeg', 'png']
+            .includes(type)
+    ) {
+        showToast(
+            'Word 檔案請先下載，再開啟列印。',
+            'error'
+        );
+        return;
+    }
+
+    /*
+     * PDF 必須等所有頁面完成繪製，
+     * 避免只列印部分頁面。
+     */
+    if (type === 'pdf') {
+
+        const canvases = Array.from(
+            document.querySelectorAll(
+                '#mobile-pdf-pages .mobile-pdf-page'
+            )
+        );
+
+        const ready =
+            mobilePdfDocument &&
+            canvases.length ===
+                mobilePdfDocument.numPages &&
+            canvases.every(
+                canvas =>
+                    canvas.dataset.osspsReady === '1'
+            );
+
+        if (!ready) {
+            showToast(
+                'PDF 尚未完成載入，請稍後再列印。',
+                'error'
+            );
+            return;
+        }
+    }
+
+    /*
+     * 圖片尚未載入完成時，不執行列印。
+     */
+    if (
+        ['jpg', 'jpeg', 'png'].includes(type)
+    ) {
+
+        const image =
+            document.getElementById(
+                'image-file-content'
+            );
+
+        if (
+            !image ||
+            !image.complete ||
+            !image.naturalWidth
+        ) {
+            showToast(
+                '圖片尚未完成載入，請稍後再列印。',
+                'error'
+            );
+            return;
+        }
+    }
+
+    /*
+     * 啟用附件專用列印樣式，
+     * 不影響一般程序書。
+     */
+    document.body.classList.add(
+        'ossps-attachment-print'
+    );
+
+    /*
+     * 列印結束後自動還原狀態。
+     */
+    window.addEventListener(
+        'afterprint',
+        () => {
+            document.body.classList.remove(
+                'ossps-attachment-print'
+            );
+        },
+        { once: true }
+    );
+
+    /*
+     * 直接啟動目前瀏覽器的列印對話框。
+     * 不建立新分頁。
+     */
+    window.print();
+}
 
 function renderReport(data) {
+
+currentExternalFileForPrint = null;
+
+    /*
+     * 返回一般標準程序書時，
+     * 解除附件專用預覽模式。
+     * 恢復原本 A4 高度與排版。
+     */
+    const reportPreview =
+        document.getElementById(
+            'report-preview'
+        );
+
+    if (reportPreview) {
+        reportPreview.classList.remove(
+            'file-preview-active'
+        );
+    }
 
     /*
      * 如果上一個畫面是手機 PDF，
@@ -24403,6 +26954,31 @@ function renderReport(data) {
      */
     clearMobilePdfPreview();
 
+    /*
+     * 返回一般程序書時，
+     * 同時清除上一張圖片預覽。
+     */
+    const imageViewer =
+        document.getElementById(
+            'image-file-viewer'
+        );
+
+    const imageContent =
+        document.getElementById(
+            'image-file-content'
+        );
+
+    if (imageViewer) {
+        imageViewer.classList.add(
+            'hidden'
+        );
+    }
+
+    if (imageContent) {
+        imageContent.removeAttribute(
+            'src'
+        );
+    }    
 
     // 切換視圖
             document.getElementById('file-preview-overlay').style.display = 'none';
@@ -24559,8 +27135,8 @@ function clearMobilePdfPreview() {
      * 每次離開 PDF 或切換新 PDF，
      * 顯示倍率回到 100%。
      */
-    mobilePdfZoomIndex =
-        1;
+mobilePdfZoomIndex =
+    2;
 
 
     const mobileViewer =
@@ -24757,6 +27333,15 @@ function updateMobilePdfZoomControls() {
             )}%`;
     }
 
+const inlineZoomLabel =
+    document.getElementById(
+        'ossps-pdf-inline-zoom'
+    );
+
+if (inlineZoomLabel) {
+    inlineZoomLabel.textContent =
+        `${Math.round(scale * 100)}%`;
+}    
 
     if (zoomOutBtn) {
 
@@ -25048,12 +27633,16 @@ updateMobilePdfZoomControls();
          * 保留左右間距，
          * PDF 預設自動符合 Viewer 寬度。
          */
-        const availableWidth =
-            Math.max(
-                240,
-                scroll.clientWidth -
-                    28
-            );
+const availableWidth =
+    Math.max(
+        240,
+        scroll.clientWidth - 28
+    ) *
+    (
+        isMobilePdfPreviewLayout()
+            ? 1
+            : 0.85
+    );
 
 
         for (
@@ -25217,6 +27806,7 @@ canvas.style.height =
                 renderContext
             ).promise;
 
+canvas.dataset.osspsReady = '1';            
 
             /*
              * PDF.js 頁面暫存完成後即釋放，
@@ -25300,18 +27890,461 @@ updateMobilePdfZoomControls();
     }
 }
 
+/* =========================================================
+   OSSPS｜DOCX 預覽管理
+========================================================= */
+
+const OSSPS_DOCX_MAX_SIZE =
+    12 * 1024 * 1024;
+
+let osspsDocxRenderId = 0;
+let osspsDocxZoom = 1;
+let osspsDocxAutoFit = true;
+let osspsDocxReady = false;
+
+
+/* 清除前一次 Word 預覽 */
+function clearOsspsDocxPreview() {
+
+    ++osspsDocxRenderId;
+
+    osspsDocxReady = false;
+    osspsDocxZoom = 1;
+    osspsDocxAutoFit = true;
+
+    const viewer =
+        document.getElementById(
+            'docx-file-viewer'
+        );
+
+    const host =
+        document.getElementById(
+            'ossps-docx-render-host'
+        );
+
+    if (viewer) {
+        viewer.classList.add('hidden');
+        viewer.scrollTop = 0;
+        viewer.scrollLeft = 0;
+    }
+
+    if (host) {
+        host.replaceChildren();
+        host.style.zoom = '1';
+    }
+}
+
+
+/* 調整 Word 文件倍率 */
+function setOsspsDocxZoom(value) {
+
+    const host =
+        document.getElementById(
+            'ossps-docx-render-host'
+        );
+
+    osspsDocxZoom = Math.max(
+        0.3,
+        Math.min(2, value)
+    );
+
+    if (host) {
+        host.style.zoom =
+            String(osspsDocxZoom);
+    }
+
+    updateOsspsFileZoomLabel();
+}
+
+
+/* 自動縮放到可用視窗寬度 */
+function fitOsspsDocxPreview() {
+
+    if (!osspsDocxReady) {
+        return;
+    }
+
+    const viewer =
+        document.getElementById(
+            'docx-file-viewer'
+        );
+
+    const host =
+        document.getElementById(
+            'ossps-docx-render-host'
+        );
+
+    if (!viewer || !host) {
+        return;
+    }
+
+    /* 先以原始倍率測量 Word 頁面 */
+    host.style.zoom = '1';
+
+    const naturalWidth =
+        host.scrollWidth;
+
+    const availableWidth =
+        Math.max(
+            150,
+            viewer.clientWidth - 24
+        );
+
+    if (!naturalWidth) {
+        return;
+    }
+
+    const scale =
+        Math.min(
+            1,
+            availableWidth / naturalWidth
+        );
+
+    setOsspsDocxZoom(scale);
+
+    osspsDocxAutoFit = true;
+}
+
+
+/* 讀取本機 DataURL 或雲端 Signed URL */
+async function renderOsspsDocxPreview(data) {
+
+    const renderId =
+        ++osspsDocxRenderId;
+
+    const overlay =
+        document.getElementById(
+            'file-preview-overlay'
+        );
+
+    const viewer =
+        document.getElementById(
+            'docx-file-viewer'
+        );
+
+    const host =
+        document.getElementById(
+            'ossps-docx-render-host'
+        );
+
+    if (!viewer || !host) {
+        return;
+    }
+
+    osspsDocxReady = false;
+    osspsDocxAutoFit = true;
+
+    viewer.classList.remove('hidden');
+
+    host.textContent =
+        '正在載入 Word 文件...';
+
+    try {
+
+        if (
+            !window.JSZip ||
+            !window.docx ||
+            typeof window.docx.renderAsync !==
+                'function'
+        ) {
+            throw new Error(
+                'DOCX_LIBRARY_NOT_READY'
+            );
+        }
+
+        const source =
+            String(
+                data.fileContent || ''
+            ).trim();
+
+        if (
+            !source.startsWith('data:') &&
+            !/^https?:\/\//i.test(source)
+        ) {
+            throw new Error(
+                'DOCX_SOURCE_INVALID'
+            );
+        }
+
+        /*
+         * DataURL：瀏覽器內部轉 Blob
+         * Signed URL：向既有儲存位置讀取
+         */
+        const response =
+            await fetch(source);
+
+        if (!response.ok) {
+            throw new Error(
+                'DOCX_FETCH_FAILED'
+            );
+        }
+
+        const blob =
+            await response.blob();
+
+        /*
+         * 大型 Word 文件在手機上
+         * 可能耗用較多記憶體。
+         */
+        if (
+            blob.size >
+            OSSPS_DOCX_MAX_SIZE
+        ) {
+            throw new Error(
+                'DOCX_TOO_LARGE'
+            );
+        }
+
+        /*
+         * 先渲染至獨立容器，
+         * 避免切換附件時覆蓋新畫面。
+         */
+        const temporary =
+            document.createElement('div');
+
+        await window.docx.renderAsync(
+            blob,
+            temporary,
+            null,
+            {
+                inWrapper: true,
+                breakPages: true,
+                renderHeaders: true,
+                renderFooters: true,
+                renderAltChunks: false,
+                useBase64URL: true
+            }
+        );
+
+        if (
+            renderId !==
+                osspsDocxRenderId ||
+            currentExternalFileForPrint !==
+                data ||
+            overlay?.style.display !==
+                'flex'
+        ) {
+            return;
+        }
+
+        host.replaceChildren(
+            temporary
+        );
+
+        osspsDocxReady = true;
+
+        /*
+         * 等 Word 頁面完成排版後，
+         * 計算最合適的顯示倍率。
+         */
+        await new Promise(resolve => {
+            requestAnimationFrame(resolve);
+        });
+
+        if (
+            renderId !==
+            osspsDocxRenderId
+        ) {
+            return;
+        }
+
+        fitOsspsDocxPreview();
+
+    } catch (error) {
+
+        if (
+            renderId !==
+            osspsDocxRenderId
+        ) {
+            return;
+        }
+
+        console.error(
+            'DOCX 預覽失敗：',
+            error
+        );
+
+        clearOsspsDocxPreview();
+
+        const fallback =
+            document.getElementById(
+                'word-viewer-fallback'
+            );
+
+        if (fallback) {
+
+            const message =
+                fallback.querySelector('p');
+
+            if (message) {
+                message.textContent =
+                    'DOCX 無法預覽，請下載原始檔案。';
+            }
+
+            fallback.classList.remove(
+                'hidden'
+            );
+        }
+    }
+}
+
+
+/*
+ * 螢幕方向或視窗大小改變時，
+ * 若仍在自動適合寬度模式，
+ * 就重新計算 DOCX 顯示倍率。
+ */
+window.addEventListener(
+    'resize',
+    () => {
+
+        const overlay =
+            document.getElementById(
+                'file-preview-overlay'
+            );
+
+        const isDocx =
+            String(
+                currentExternalFileForPrint
+                    ?.fileType || ''
+            ).toLowerCase() === 'docx';
+
+        if (
+            !isDocx ||
+            !osspsDocxReady ||
+            !osspsDocxAutoFit ||
+            overlay?.style.display !==
+                'flex'
+        ) {
+            return;
+        }
+
+        requestAnimationFrame(
+            fitOsspsDocxPreview
+        );
+    }
+);
+
+/* =========================================================
+   OSSPS｜關閉獨立附件預覽視窗
+========================================================= */
+
+function closeExternalFilePreview() {
+
+document.body.classList.remove(
+    'ossps-attachment-print'
+);
+
+    const overlay =
+        document.getElementById(
+            'file-preview-overlay'
+        );
+
+    if (overlay) {
+        overlay.style.display = 'none';
+    }
+
+    // 停止 PDF.js，釋放上一份 PDF 資源
+    clearMobilePdfPreview();
+
+// 清除 Word 預覽內容及未完成的載入
+clearOsspsDocxPreview();
+
+    // 清除 iframe
+    const iframe =
+        document.getElementById('file-viewer');
+
+    if (iframe) {
+        iframe.src = 'about:blank';
+    }
+
+    // 清除圖片
+    const imageViewer =
+        document.getElementById(
+            'image-file-viewer'
+        );
+
+    if (imageViewer) {
+        imageViewer.classList.add('hidden');
+        imageViewer.scrollTop = 0;
+    }
+
+    const image =
+        document.getElementById(
+            'image-file-content'
+        );
+
+    if (image) {
+        image.removeAttribute('src');
+    }
+
+    // 清除 Word 下載事件引用
+    const downloadBtn =
+        document.getElementById(
+            'download-word-link'
+        );
+
+    if (downloadBtn) {
+        downloadBtn.onclick = null;
+    }
+
+    currentExternalFileForPrint = null;
+}
+
+// 按 Esc 關閉附件預覽
+document.addEventListener('keydown', event => {
+
+    if (event.key !== 'Escape') {
+        return;
+    }
+
+    const overlay =
+        document.getElementById(
+            'file-preview-overlay'
+        );
+
+    if (
+        overlay &&
+        overlay.style.display === 'flex'
+    ) {
+        closeExternalFilePreview();
+    }
+});
+
 function renderExternalFile(data) {
 
-    document.getElementById(
-        'report-content-wrapper'
-    ).style.display =
-        'none';
+    currentExternalFileForPrint = data;
 
+    const overlay =
+        document.getElementById(
+            'file-preview-overlay'
+        );
 
-    document.getElementById(
-        'file-preview-overlay'
-    ).style.display =
-        'block';
+    if (!overlay) {
+        return;
+    }
+
+    /*
+     * 將附件預覽圖層移到 body 最外層。
+     * 避免受到 A4 的 transform、overflow 影響。
+     */
+    if (overlay.parentElement !== document.body) {
+        document.body.appendChild(overlay);
+    }
+
+    const title =
+        document.getElementById(
+            'ossps-file-title'
+        );
+
+    if (title) {
+        title.textContent =
+            data.name || '附件預覽';
+    }
+
+    toggleMobileSidebar(false);
+
+    overlay.style.display = 'flex';
 
 
     const viewer =
@@ -25334,84 +28367,94 @@ function renderExternalFile(data) {
             'download-word-link'
         );
 
+    /*
+     * JPG / JPEG / PNG 圖片預覽元件
+     */
+    const imageViewer =
+        document.getElementById(
+            'image-file-viewer'
+        );
+
+    const imageContent =
+        document.getElementById(
+            'image-file-content'
+        );
 
     const fileType =
         String(
             data.fileType || ''
         ).toLowerCase();
 
+/* 切換附件前，清除上一份 DOCX */
+clearOsspsDocxPreview();
+
+/* Word 顯示下載，其他附件顯示列印 */
+const isWord =
+    fileType === 'doc' ||
+    fileType === 'docx';
+
+const printBtn =
+    document.getElementById(
+        'ossps-file-print-btn'
+    );
+
+const wordDownloadBtn =
+    document.getElementById(
+        'ossps-word-download-top'
+    );
+
+if (printBtn) {
+    printBtn.classList.toggle(
+        'hidden',
+        isWord
+    );
+}
+
+if (wordDownloadBtn) {
+    wordDownloadBtn.classList.toggle(
+        'hidden',
+        !isWord
+    );
+}
+
+/* 每次開啟新附件，圖片倍率恢復預設 */
+
+osspsImageZoomIndex = 2;
+
+if (imageContent) {
+    imageContent.style.width = '85%';
+    imageContent.style.maxWidth = 'none';
+    imageContent.style.height = 'auto';
+}
+
+/*
+ * 每次切換附件時，
+ * 先清除上一份圖片預覽。
+ */
+imageViewer.classList.add('hidden');
+
+imageContent.removeAttribute('src');
+
+imageViewer.scrollTop = 0;        
 
     if (
         fileType ===
         'pdf'
     ) {
 
+        /*
+         * PDF 桌機與手機統一採 PDF.js
+         * 多頁 Canvas 預覽。
+         *
+         * 不再區分桌機 iframe、
+         * 手機 PDF.js 兩種正常顯示方式。
+         *
+         * 使用既有多頁捲動容器，
+         * 不變動附件儲存及下載來源。
+         */
         wordFallback.classList.add(
             'hidden'
         );
-
-
-        /*
-         * 手機直式／橫式：
-         * 自動在原本白框中使用
-         * PDF.js 多頁 Viewer。
-         *
-         * 不需要任何額外按鈕。
-         */
-        if (
-            isMobilePdfPreviewLayout()
-        ) {
-
-            viewer.src =
-                'about:blank';
-
-            viewer.classList.add(
-                'hidden'
-            );
-
-
-            renderMobilePdfPreview(
-                data.fileContent,
-                data.name
-            );
-
-
-        } else {
-
-            /*
-             * 桌機：
-             * 完全維持原本 iframe
-             * PDF Viewer。
-             */
-            clearMobilePdfPreview();
-
-
-            if (mobileViewer) {
-
-                mobileViewer.classList.add(
-                    'hidden'
-                );
-            }
-
-
-            viewer.classList.remove(
-                'hidden'
-            );
-
-
-            viewer.src =
-                data.fileContent;
-        }
-
-
-    } else {
-
-        /*
-         * Word：
-         * 完全維持原本下載機制。
-         */
-        clearMobilePdfPreview();
-
 
         viewer.src =
             'about:blank';
@@ -25420,43 +28463,119 @@ function renderExternalFile(data) {
             'hidden'
         );
 
+        renderMobilePdfPreview(
+            data.fileContent,
+            data.name
+        );
+
+    } else if (
+        ['jpg', 'jpeg', 'png'].includes(fileType)
+    ) {
+
+        /*
+         * 圖片預覽：
+         * 支援 JPG / JPEG / PNG。
+         *
+         * 直接使用原本 A4 白色預覽區。
+         */
+
+        clearMobilePdfPreview();
+
+        viewer.src =
+            'about:blank';
+
+        viewer.classList.add(
+            'hidden'
+        );
 
         if (mobileViewer) {
-
             mobileViewer.classList.add(
                 'hidden'
             );
         }
 
+        wordFallback.classList.add(
+            'hidden'
+        );
+
+        imageViewer.classList.remove(
+            'hidden'
+        );
+
+        imageContent.src =
+            data.fileContent;
+
+        imageViewer.scrollTop = 0;
+
+
+} else {
+
+    clearMobilePdfPreview();
+
+    viewer.src = 'about:blank';
+    viewer.classList.add('hidden');
+
+    if (mobileViewer) {
+        mobileViewer.classList.add(
+            'hidden'
+        );
+    }
+
+    /*
+     * 保留 Word 原檔下載。
+     */
+    downloadBtn.onclick = () => {
+
+        const link =
+            document.createElement('a');
+
+        link.href =
+            data.fileContent;
+
+        link.download =
+            data.name;
+
+        link.click();
+    };
+
+    if (fileType === 'docx') {
+
+        /*
+         * DOCX：
+         * 使用前端套件直接預覽。
+         */
+        wordFallback.classList.add(
+            'hidden'
+        );
+
+        renderOsspsDocxPreview(
+            data
+        );
+
+    } else {
+
+        /*
+         * DOC：
+         * 舊版格式仍保留下載。
+         */
+        const message =
+            wordFallback.querySelector(
+                'p'
+            );
+
+        if (message) {
+            message.textContent =
+                '舊版 DOC 格式暫不支援線上預覽，請下載原檔。';
+        }
 
         wordFallback.classList.remove(
             'hidden'
         );
-
-
-        downloadBtn.onclick =
-            () => {
-
-                const link =
-                    document.createElement(
-                        'a'
-                    );
-
-
-                link.href =
-                    data.fileContent;
-
-
-                link.download =
-                    data.name;
-
-
-                link.click();
-            };
     }
+}
 
+updateOsspsFileZoomLabel();
 
-    updateMobilePreviewScale();
 }
 
 async function updateReportsDropdown() {
@@ -25575,6 +28694,71 @@ initIcons();
         }
 
 async function loadReport(id) {
+
+    /*
+     * OSSPS｜附件只開啟獨立預覽
+     *
+     * 不切換目前程序書
+     * 不清除未儲存草稿
+     * 不變動 currentLoadedReportId
+     * 不變動 reportDraftDirty
+     */
+
+    const isPreviewItem =
+        typeof id === 'string' &&
+        id.startsWith('preview-');
+
+    const selectedData =
+        isPreviewItem
+            ? (
+                Array.isArray(previewStandards)
+                    ? previewStandards[
+                        Number(id.slice(8))
+                    ]
+                    : null
+            )
+            : standards.find(
+                item =>
+                    Number(item.id) === Number(id)
+            );
+
+    if (
+        selectedData &&
+        selectedData.isExternalFile
+    ) {
+
+        renderExternalFile(selectedData);
+
+        /*
+         * 恢復下拉選單原本選取的程序書。
+         * 附件不是切換目前正在編輯的報告。
+         */
+        const dropdown =
+            document.getElementById(
+                'reports-dropdown'
+            );
+
+        if (dropdown) {
+
+            const originalValue =
+                currentLoadedReportId == null
+                    ? ''
+                    : String(currentLoadedReportId);
+
+            const exists =
+                Array.from(
+                    dropdown.options
+                ).some(
+                    option =>
+                        option.value === originalValue
+                );
+
+            dropdown.value =
+                exists ? originalValue : '';
+        }
+
+        return;
+    }
 
     if (
         !confirmDiscardReportDraft(
@@ -25702,10 +28886,6 @@ function updateSaveBtnText() {
 async function saveReport() {
     if (!canEditData()) {
         return showToast("請先登入權限後再儲存程序書。", "error");
-    }
-
-    if (document.getElementById('file-preview-overlay').style.display === 'block') {
-        return showToast("外部檔案不支援在線編輯", "error");
     }
 
     if (!hasCurrentReportContent()) {
@@ -26110,6 +29290,22 @@ function getStandardProcedureCloudAttachmentMimeType(
         return 'application/msword';
     }
 
+    if (
+        fileType === 'jpg' ||
+        fileType === 'jpeg' ||
+        fileName.endsWith('.jpg') ||
+        fileName.endsWith('.jpeg')
+    ) {
+        return 'image/jpeg';
+    }
+
+    if (
+        fileType === 'png' ||
+        fileName.endsWith('.png')
+    ) {
+        return 'image/png';
+    }
+
     return 'application/octet-stream';
 }
 
@@ -26251,15 +29447,17 @@ function buildStandardProcedureCloudPayload(
             );
         }
 
-        const {
-            fileContent,
-            dataURL,
-            data,
-            url,
-            signed_url,
-            is_cloud_file,
-            ...metadata
-        } = value;
+const {
+    fileContent,
+    dataURL,
+    data,
+    url,
+    signed_url,
+    is_cloud_file,
+    cloud_file_id,
+    cloud_workspace_id,
+    ...metadata
+} = value;
 
         return {
             ...metadata,
@@ -26454,6 +29652,23 @@ function getStandardProcedureFileType(
         return 'doc';
     }
 
+    if (
+        mime === 'image/jpeg' ||
+        name.endsWith('.jpg') ||
+        name.endsWith('.jpeg')
+    ) {
+        return name.endsWith('.jpeg')
+            ? 'jpeg'
+            : 'jpg';
+    }
+
+    if (
+        mime === 'image/png' ||
+        name.endsWith('.png')
+    ) {
+        return 'png';
+    }
+
     return '';
 }
 
@@ -26470,7 +29685,8 @@ function getStandardProcedureFileType(
  */
 function hydrateStandardProcedureCloudPayload(
     value,
-    cloudFileMap
+    cloudFileMap,
+    sourceWorkspaceId = ''
 ) {
 
     if (
@@ -26537,6 +29753,13 @@ function hydrateStandardProcedureCloudPayload(
             cloud_file_id:
                 cloudFileId,
 
+            ...(sourceWorkspaceId
+                ? {
+                    cloud_workspace_id:
+                        String(sourceWorkspaceId)
+                }
+                : {}),
+
             is_cloud_file:
                 true
         };
@@ -26549,10 +29772,11 @@ function hydrateStandardProcedureCloudPayload(
     ) {
         return value.map(
             item =>
-                hydrateStandardProcedureCloudPayload(
-                    item,
-                    cloudFileMap
-                )
+hydrateStandardProcedureCloudPayload(
+    item,
+    cloudFileMap,
+    sourceWorkspaceId
+)
         );
     }
 
@@ -26568,10 +29792,11 @@ function hydrateStandardProcedureCloudPayload(
             ([key, child]) => {
 
                 output[key] =
-                    hydrateStandardProcedureCloudPayload(
-                        child,
-                        cloudFileMap
-                    );
+hydrateStandardProcedureCloudPayload(
+    child,
+    cloudFileMap,
+    sourceWorkspaceId
+)
             }
         );
 
@@ -26879,11 +30104,8 @@ function backToDataExportChoice() {
 /*
  * 正式資料完全沿用原本 exportDB()。
  */
-function exportFormalDataFromModal() {
-
-    closeDataExportModal();
-
-    exportDB();
+async function exportFormalDataFromModal() {
+    await exportDB();
 }
 
 
@@ -27124,84 +30346,471 @@ async function exportPreviewDB() {
     }
 }
 
+/*
+ * OSSPS｜第五階段
+ * 正式 JSON 備份附件完整封裝。
+ *
+ * 僅供正式匯出使用，
+ * 不改限時／限次預覽 JSON。
+ */
+async function materializeStandardProcedureFormalBackup(
+    value,
+    onProgress = () => {}
+) {
+    const cache = new Map();
+
+    let total = 0;
+    let completed = 0;
+
+    function isAttachment(node) {
+        return !!(
+            node &&
+            typeof node === 'object' &&
+            !Array.isArray(node) &&
+            (
+                node.cloud_file_id ||
+                node.isExternalFile === true ||
+                isStandardProcedureLocalCloudAttachment(node)
+            )
+        );
+    }
+
+    function count(node) {
+        if (
+            !node ||
+            typeof node !== 'object'
+        ) {
+            return;
+        }
+
+        if (Array.isArray(node)) {
+            node.forEach(count);
+            return;
+        }
+
+        if (isAttachment(node)) {
+            total += 1;
+            return;
+        }
+
+        Object.values(node).forEach(count);
+    }
+
+    count(value);
+    onProgress(0, total);
+
+    async function walk(node) {
+        if (
+            !node ||
+            typeof node !== 'object'
+        ) {
+            return node;
+        }
+
+        if (Array.isArray(node)) {
+            const output = [];
+
+            for (const item of node) {
+                output.push(
+                    await walk(item)
+                );
+            }
+
+            return output;
+        }
+
+        if (isAttachment(node)) {
+            /*
+             * 沿用既有來源下載與 Cache。
+             * 雲端附件重新取得 Signed URL，
+             * 本機 DataURL 直接保留。
+             */
+            const prepared =
+                await materializeStandardProcedurePreviewSources(
+                    node,
+                    cache
+                );
+
+            const dataUrl =
+                getStandardProcedureCloudAttachmentDataUrl(
+                    prepared
+                );
+
+            if (
+                !dataUrl ||
+                !String(prepared.name || '').trim()
+            ) {
+                throw new Error(
+                    'WORKSPACE_ATTACHMENT_CONTENT_MISSING'
+                );
+            }
+
+            const bytes =
+                standardProcedureDataUrlToUint8Array(
+                    dataUrl
+                );
+
+            if (
+                bytes.length < 1 ||
+                bytes.length > 5 * 1024 * 1024
+            ) {
+                throw new Error(
+                    'WORKSPACE_FILE_SIZE_INVALID'
+                );
+            }
+
+            if (
+                Number(node.size) > 0 &&
+                Number(node.size) !== bytes.length
+            ) {
+                throw new Error(
+                    'CLOUD_ATTACHMENT_SIZE_MISMATCH'
+                );
+            }
+
+            const mime =
+                getStandardProcedureCloudAttachmentMimeType(
+                    prepared
+                );
+
+            const fileType =
+                getStandardProcedureFileType(
+                    mime,
+                    prepared.name
+                );
+
+            if (
+                ![
+                    'pdf',
+                    'doc',
+                    'docx',
+                    'jpg',
+                    'jpeg',
+                    'png'
+                ].includes(fileType)
+            ) {
+                throw new Error(
+                    'WORKSPACE_FILE_TYPE_NOT_ALLOWED'
+                );
+            }
+
+            /*
+             * 不允許把雲端 ID、來源 Workspace
+             * 或短效 Signed URL 放進正式 JSON。
+             */
+            const {
+                fileContent,
+                dataURL,
+                data,
+                url,
+                signed_url,
+                is_cloud_file,
+                cloud_file_id,
+                cloud_workspace_id,
+                ...metadata
+            } = prepared;
+
+            completed += 1;
+
+            onProgress(
+                completed,
+                total
+            );
+
+            return {
+                ...metadata,
+                mime,
+                size: bytes.length,
+                fileContent: dataUrl
+            };
+        }
+
+        const output = {};
+
+        for (
+            const [key, child]
+            of Object.entries(node)
+        ) {
+            output[key] =
+                await walk(child);
+        }
+
+        return output;
+    }
+
+    return await walk(value);
+}
+
 async function exportDB() {
 
     if (!canExportData()) {
         showToast(
-            "請先登入權限後再匯出資料。",
-            "error"
+            '請先登入權限後再匯出資料。',
+            'error'
         );
+        return;
+    }
 
+    if (hasUnsavedReportChanges()) {
+        showToast(
+            '目前程序書仍有尚未儲存的修改，請先按下「儲存／儲存修改」後再匯出資料檔案。',
+            'error'
+        );
         return;
     }
 
     /*
-     * 畫面仍有未按儲存的程序書時，
-     * 不允許把舊 standards 當成最新版 JSON 匯出。
+     * 正式 JSON 匯出不與其他雲端操作同時進行。
      */
-    if (hasUnsavedReportChanges()) {
+    if (standardProcedureCloudOperation) {
         showToast(
-            "目前程序書仍有尚未儲存的修改，請先按下「儲存／儲存修改」後再匯出資料檔案。",
-            "error"
+            '目前有資料或雲端操作正在進行，請完成後再匯出。',
+            'error'
         );
-
         return;
     }
 
-    try {
-        const standards = await getAllFromStore('standards');
-        const savedCategories = await getSettingValue('categories', categories);
+    standardProcedureCloudOperation = 'json-export';
 
-        const exportDate = new Date().toISOString().split('T')[0];
+    /*
+     * 正式資料圖卡顯示備份進度。
+     */
+    const formalButton = document.querySelector(
+        '#data-export-choice-view button[onclick="exportFormalDataFromModal()"]'
+    );
+
+    const choiceButtons = Array.from(
+        document.querySelectorAll(
+            '#data-export-choice-view button'
+        )
+    );
+
+    const oldHTML =
+        formalButton?.innerHTML || '';
+
+    function showBackupProgress(done, total) {
+        if (!formalButton) {
+            return;
+        }
+
+        formalButton.innerHTML = `
+            <i class="fas fa-spinner fa-spin text-indigo-600"
+               aria-hidden="true"></i>
+
+            <span class="text-xs font-black text-slate-700 mt-2">
+                備份附件 ${done}/${total}
+            </span>
+        `;
+    }
+
+    choiceButtons.forEach(button => {
+        button.disabled = true;
+    });
+
+    try {
+        const originalStandards =
+            await getAllFromStore(
+                'standards'
+            );
+
+        const savedCategories =
+            await getSettingValue(
+                'categories',
+                categories
+            );
+
+        /*
+         * 固定匯出當下的工作資料快照，
+         * 不直接修改正式 Session。
+         */
+        const standardsSnapshot =
+            JSON.stringify(originalStandards);
+
+        const categoriesSnapshot =
+            JSON.stringify(savedCategories);
+
+        /*
+         * 將正式附件封裝成完整 DataURL。
+         */
+        const completeStandards =
+            await materializeStandardProcedureFormalBackup(
+                JSON.parse(standardsSnapshot),
+                showBackupProgress
+            );
 
         const exportData = {
-            version: "standard-procedure-system-json-v2",
-            exportType: "unified-data",
-            exportedAt: new Date().toISOString(),
-            exportedBy: isAdmin ? "admin" : "editor",
-            categories: savedCategories || categories,
-            standards: standards || []
+            version:
+                'standard-procedure-system-json-v2',
+
+            exportType:
+                'unified-data',
+
+            exportedAt:
+                new Date().toISOString(),
+
+            exportedBy:
+                isAdmin ? 'admin' : 'editor',
+
+            categories:
+                savedCategories || categories,
+
+            standards:
+                completeStandards
         };
 
         /*
-         * 匯出資料不包含：
-         * adminPassword
-         * editorPassword
-         * editorEnabled
-         * currentAdminPassword
-         * currentEditorPassword
-         * isAdmin
-         * isEditor
-         * MASTER_RECOVERY_CODE
+         * 不允許任何尚未完成封裝的
+         * cloud_file_id 或暫存網址。
          */
+        verifyStandardProcedureWorkspaceAttachmentSources(
+            exportData,
+            []
+        );
 
-        const blob = new Blob([JSON.stringify(exportData, null, 2)], {
-            type: 'application/json'
-        });
+        /*
+         * 備份期間若工作階段資料被修改，
+         * 直接取消本次匯出，
+         * 避免誤認已備份最新工作成果。
+         */
+        if (
+            hasUnsavedReportChanges() ||
+            JSON.stringify(
+                await getAllFromStore('standards')
+            ) !== standardsSnapshot ||
+            JSON.stringify(
+                await getSettingValue(
+                    'categories',
+                    categories
+                )
+            ) !== categoriesSnapshot
+        ) {
+            throw new Error(
+                'WORKSPACE_SESSION_CHANGED'
+            );
+        }
 
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
+        const exportDate =
+            new Date()
+                .toISOString()
+                .split('T')[0];
+
+        const blob =
+            new Blob(
+                [
+                    JSON.stringify(
+                        exportData,
+                        null,
+                        2
+                    )
+                ],
+                {
+                    type: 'application/json'
+                }
+            );
+
+        const url =
+            URL.createObjectURL(blob);
+
+        const a =
+            document.createElement('a');
 
         a.href = url;
-        a.download = `職安標準程序SPS_${exportDate}.json`;
+
+        a.download =
+            `職安標準程序SPS_${exportDate}.json`;
+
         a.style.display = 'none';
 
-document.body.appendChild(a);
-a.click();
+        document.body.appendChild(a);
+        a.click();
 
-/*
- * 最新正式 Session 已完成 JSON 匯出。
- */
-sessionNeedsExport = false;
+        /*
+         * 全部附件封裝成功，
+         * 且正式 JSON 已觸發下載，
+         * 才解除尚未匯出狀態。
+         */
+        sessionNeedsExport = false;
 
-setTimeout(() => {
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-}, 0);
+        setTimeout(() => {
+            a.remove();
+            URL.revokeObjectURL(url);
+        }, 10000);
+
+        closeDataExportModal();
 
     } catch (err) {
-        console.error("匯出資料失敗：", err);
-        alert("匯出資料失敗，請重新整理後再試一次。");
+
+        console.error(
+            '正式 JSON 匯出失敗：',
+            err
+        );
+
+        const messages = {
+            CLOUD_ATTACHMENT_SOURCE_MISSING:
+                '附件來源不明，無法製作完整備份。',
+
+            WORKSPACE_SIGNED_READ_FAILED:
+                '無法取得雲端附件讀取權限。',
+
+            WORKSPACE_SIGNED_READ_INVALID:
+                '雲端附件讀取資訊不完整。',
+
+            CLOUD_ATTACHMENT_READ_FAILED:
+                '雲端附件下載失敗，請稍後再試。',
+
+            CLOUD_ATTACHMENT_SIZE_MISMATCH:
+                '附件大小與紀錄不一致，已取消匯出。',
+
+            WORKSPACE_FILE_SIZE_INVALID:
+                '附件內容為空或超過 5MB，已取消匯出。',
+
+            WORKSPACE_FILE_TYPE_NOT_ALLOWED:
+                '附件格式不支援，已取消匯出。',
+
+            WORKSPACE_ATTACHMENT_DATA_INVALID:
+                '附件 DataURL 格式錯誤，已取消匯出。',
+
+            WORKSPACE_ATTACHMENT_CONTENT_MISSING:
+                '附件缺少完整內容，已取消匯出。',
+
+            WORKSPACE_FOREIGN_ATTACHMENT:
+                '尚有未完整封裝的雲端附件，已取消匯出。',
+
+            WORKSPACE_EXTERNAL_ATTACHMENT:
+                '尚有臨時附件網址，已取消匯出。',
+
+            WORKSPACE_SESSION_CHANGED:
+                '備份期間資料已變更，請重新執行匯出。'
+        };
+
+        /*
+         * 原 Toast 在匯出視窗下層。
+         * 先關閉視窗，讓錯誤訊息可見。
+         */
+        closeDataExportModal();
+
+        showToast(
+            messages[err?.message] ||
+                '正式資料匯出失敗，請重試。',
+            'error'
+        );
+
+    } finally {
+
+        if (formalButton) {
+            formalButton.innerHTML = oldHTML;
+        }
+
+        choiceButtons.forEach(button => {
+            button.disabled = false;
+        });
+
+        if (
+            standardProcedureCloudOperation ===
+            'json-export'
+        ) {
+            standardProcedureCloudOperation = '';
+        }
     }
 }
 
@@ -27438,18 +31047,39 @@ async function importDB(
                 }
 
 
-                /*
-                 * 正式載入前清掉任何預覽狀態。
-                 */
-                previewCategories =
-                    null;
+/*
+ * 正式 JSON 匯入時，
+ * 防止與雲端儲存同時進行。
+ */
+if (standardProcedureCloudOperation) {
+    alert(
+        '目前有雲端操作正在進行，無法同時匯入 JSON。'
+    );
+    return;
+}
+
+standardProcedureCloudOperation = 'json-import';
+
+/*
+ * 清除舊 Workspace 的關聯，
+ * 但不清除即將匯入的 JSON 資料。
+ */
+clearActiveCloudWorkspace();
+
+/*
+ * 正式載入前清掉任何預覽狀態。
+ */
+previewCategories =
+    null;
 
 
                 previewStandards =
                     null;
 
 
-                clearLimitedPreviewRuntimeState();
+clearLimitedPreviewRuntimeState();
+
+clearCloudPreviewRuntimeState();
 
 
                 /*
@@ -27551,11 +31181,17 @@ async function importDB(
                 );
 
 
-            } finally {
+} finally {
 
-                event.target.value =
-                    '';
-            }
+    if (
+        standardProcedureCloudOperation ===
+        'json-import'
+    ) {
+        standardProcedureCloudOperation = '';
+    }
+
+    event.target.value = '';
+}
         };
 
 
