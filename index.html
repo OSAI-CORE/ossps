@@ -3067,9 +3067,17 @@ touch-action:
 }
 
 
+/* =========================================================
+   OSSPS｜PDF 多頁預覽置中及完整捲動範圍
+
+   小於視窗時維持置中；
+   放大超出視窗時讓容器隨內容擴展。
+   保留原本 PDF.js Canvas 與捲動設定。
+========================================================= */
+
 #mobile-pdf-pages {
     width:
-        100%;
+        max-content;
 
     min-width:
         100%;
@@ -3080,12 +3088,8 @@ touch-action:
     flex-direction:
         column;
 
-    /*
-     * 小於容器時由 Canvas 的 auto margin 置中；
-     * 放大超出容器時則可正常往右捲動。
-     */
     align-items:
-        flex-start;
+        center;
 
     gap:
         12px;
@@ -9702,21 +9706,31 @@ function setCloudPreviewViewerBusy(
         !!busy;
 
     if (busy) {
+
+        button.classList.remove(
+            'opacity-60'
+        );
+
         button.classList.add(
-            'opacity-60',
             'cursor-wait'
         );
 
         button.innerHTML = `
-            <i class="fas fa-cloud-arrow-down"
+            <i class="
+                fas fa-spinner
+                fa-spin
+                text-[13px]
+                leading-none
+            "
                aria-hidden="true"></i>
 
             <span>
-                正在載入...
+                載入中
             </span>
         `;
 
     } else {
+
         button.classList.remove(
             'opacity-60',
             'cursor-wait'
@@ -9951,6 +9965,19 @@ async function submitCloudPreviewViewerOpen() {
         getCurrentRole() !==
         'viewer'
     ) {
+        return;
+    }
+
+    /*
+     * 雲端預覽正在載入時，
+     * 防止重複點擊或按 Enter 再次送出。
+     */
+    const openButton =
+        document.getElementById(
+            'cloud-preview-view-open-btn'
+        );
+
+    if (openButton?.disabled) {
         return;
     }
 
@@ -26732,17 +26759,102 @@ if (type === 'docx') {
             'image-file-content'
         );
 
+    const imageViewer =
+        document.getElementById(
+            'image-file-viewer'
+        );
+
+    // =====================================================
+    // 一、縮放前記錄目前圖片閱讀中心
+    // =====================================================
+
+    let zoomAnchor = null;
+
+    if (
+        image &&
+        imageViewer &&
+        !imageViewer.classList.contains('hidden')
+    ) {
+
+        const oldRect =
+            image.getBoundingClientRect();
+
+        const viewerRect =
+            imageViewer.getBoundingClientRect();
+
+        if (
+            oldRect.width > 0 &&
+            oldRect.height > 0
+        ) {
+
+            const centerX =
+                viewerRect.left +
+                imageViewer.clientWidth / 2;
+
+            const centerY =
+                viewerRect.top +
+                imageViewer.clientHeight / 2;
+
+            zoomAnchor = {
+                x:
+                    (centerX - oldRect.left) /
+                    oldRect.width,
+
+                y:
+                    (centerY - oldRect.top) /
+                    oldRect.height
+            };
+        }
+    }
+
+    // =====================================================
+    // 二、保留原本圖片縮放比例
+    // =====================================================
+
     if (image) {
 
-        image.style.maxWidth = 'none';
+        image.style.maxWidth =
+            'none';
 
         image.style.width =
             `${85 * scale}%`;
 
-        image.style.height = 'auto';
+        image.style.height =
+            'auto';
     }
 
     updateOsspsFileZoomLabel();
+
+    // =====================================================
+    // 三、縮放後恢復原本閱讀中心
+    // =====================================================
+
+    if (zoomAnchor && imageViewer) {
+
+        const newRect =
+            image.getBoundingClientRect();
+
+        const viewerRect =
+            imageViewer.getBoundingClientRect();
+
+        const centerX =
+            viewerRect.left +
+            imageViewer.clientWidth / 2;
+
+        const centerY =
+            viewerRect.top +
+            imageViewer.clientHeight / 2;
+
+        imageViewer.scrollLeft +=
+            newRect.left +
+            zoomAnchor.x * newRect.width -
+            centerX;
+
+        imageViewer.scrollTop +=
+            newRect.top +
+            zoomAnchor.y * newRect.height -
+            centerY;
+    }
 }
 
 
@@ -27365,50 +27477,170 @@ if (inlineZoomLabel) {
  * 將目前倍率套用到
  * 已經 Render 完成的 Canvas。
  */
+/* =========================================================
+   OSSPS｜PDF 多頁縮放中心定位
+
+   沿用績效、證照、風險系統
+   已確認的頁面實際座標補償機制。
+
+   保留 PDF.js 原本 Canvas 縮放方式。
+========================================================= */
+
 function applyMobilePdfZoom() {
 
     const scale =
         getMobilePdfZoomScale();
 
-
-    const canvases =
-        document.querySelectorAll(
-            '#mobile-pdf-pages .mobile-pdf-page'
+    const scroller =
+        document.getElementById(
+            'mobile-pdf-pages-scroll'
         );
 
+    const canvases =
+        Array.from(
+            document.querySelectorAll(
+                '#mobile-pdf-pages .mobile-pdf-page'
+            )
+        );
 
-    canvases.forEach(
-        canvas => {
+    // =====================================================
+    // 一、縮放前記錄目前 PDF 閱讀位置
+    // =====================================================
 
-            const baseWidth =
-                Number(
-                    canvas.dataset.baseWidth
-                );
+    let zoomAnchor = null;
 
-            const baseHeight =
-                Number(
-                    canvas.dataset.baseHeight
-                );
+    if (
+        scroller &&
+        canvases.length
+    ) {
 
+        const bodyRect =
+            scroller.getBoundingClientRect();
 
-            if (
-                !baseWidth ||
-                !baseHeight
-            ) {
-                return;
+        const centerX =
+            bodyRect.left +
+            scroller.clientWidth / 2;
+
+        const centerY =
+            bodyRect.top +
+            scroller.clientHeight / 2;
+
+        let activeCanvas = null;
+        let shortestDistance = Infinity;
+
+        // 找出最接近視窗中心的 PDF 頁面。
+        canvases.forEach(canvas => {
+
+            const rect =
+                canvas.getBoundingClientRect();
+
+            const distance = Math.max(
+                rect.top - centerY,
+                0,
+                centerY - rect.bottom
+            );
+
+            if (distance < shortestDistance) {
+
+                shortestDistance =
+                    distance;
+
+                activeCanvas =
+                    canvas;
             }
+        });
 
+        if (activeCanvas) {
 
-            canvas.style.width =
-                `${baseWidth * scale}px`;
+            const rect =
+                activeCanvas.getBoundingClientRect();
 
-            canvas.style.height =
-                `${baseHeight * scale}px`;
+            zoomAnchor = {
+
+                canvas:
+                    activeCanvas,
+
+                x: rect.width > 0
+                    ? (centerX - rect.left) /
+                        rect.width
+                    : 0.5,
+
+                y: rect.height > 0
+                    ? (centerY - rect.top) /
+                        rect.height
+                    : 0.5
+            };
         }
-    );
+    }
 
+    // =====================================================
+    // 二、完整保留原本 Canvas 縮放方式
+    // =====================================================
+
+    canvases.forEach(canvas => {
+
+        const baseWidth =
+            Number(
+                canvas.dataset.baseWidth
+            );
+
+        const baseHeight =
+            Number(
+                canvas.dataset.baseHeight
+            );
+
+        if (
+            !baseWidth ||
+            !baseHeight
+        ) {
+            return;
+        }
+
+        canvas.style.width =
+            `${baseWidth * scale}px`;
+
+        canvas.style.height =
+            `${baseHeight * scale}px`;
+    });
 
     updateMobilePdfZoomControls();
+
+    // =====================================================
+    // 三、縮放後恢復原本閱讀中心
+    // =====================================================
+
+    if (
+        zoomAnchor &&
+        scroller
+    ) {
+
+        const nextRect =
+            zoomAnchor.canvas
+                .getBoundingClientRect();
+
+        const bodyRect =
+            scroller.getBoundingClientRect();
+
+        const centerX =
+            bodyRect.left +
+            scroller.clientWidth / 2;
+
+        const centerY =
+            bodyRect.top +
+            scroller.clientHeight / 2;
+
+        // 水平補償。
+        scroller.scrollLeft +=
+            nextRect.left +
+            zoomAnchor.x * nextRect.width -
+            centerX;
+
+        // 垂直補償。
+        scroller.scrollTop +=
+            nextRect.top +
+            zoomAnchor.y * nextRect.height -
+            centerY;
+    }
 }
 
 
@@ -27935,13 +28167,77 @@ function clearOsspsDocxPreview() {
 }
 
 
-/* 調整 Word 文件倍率 */
-function setOsspsDocxZoom(value) {
+/* =========================================================
+   OSSPS｜DOCX 縮放中心定位
+========================================================= */
+
+function setOsspsDocxZoom(
+    value,
+    options = {}
+) {
+
+    const viewer =
+        document.getElementById(
+            'docx-file-viewer'
+        );
 
     const host =
         document.getElementById(
             'ossps-docx-render-host'
         );
+
+    // =====================================================
+    // 一、縮放前記錄目前閱讀中心
+    // =====================================================
+
+    const preserveScroll =
+        options.preserveScroll !== false &&
+        osspsDocxReady;
+
+    let zoomAnchor = null;
+
+    if (
+        preserveScroll &&
+        viewer &&
+        host &&
+        !viewer.classList.contains('hidden')
+    ) {
+
+        const oldRect =
+            host.getBoundingClientRect();
+
+        const viewerRect =
+            viewer.getBoundingClientRect();
+
+        if (
+            oldRect.width > 0 &&
+            oldRect.height > 0
+        ) {
+
+            const centerX =
+                viewerRect.left +
+                viewer.clientWidth / 2;
+
+            const centerY =
+                viewerRect.top +
+                viewer.clientHeight / 2;
+
+            zoomAnchor = {
+
+                x:
+                    (centerX - oldRect.left) /
+                    oldRect.width,
+
+                y:
+                    (centerY - oldRect.top) /
+                    oldRect.height
+            };
+        }
+    }
+
+    // =====================================================
+    // 二、保留原本 Word 縮放倍率
+    // =====================================================
 
     osspsDocxZoom = Math.max(
         0.3,
@@ -27949,11 +28245,47 @@ function setOsspsDocxZoom(value) {
     );
 
     if (host) {
+
         host.style.zoom =
             String(osspsDocxZoom);
     }
 
     updateOsspsFileZoomLabel();
+
+    // =====================================================
+    // 三、縮放後恢復原本閱讀中心
+    // =====================================================
+
+    if (
+        zoomAnchor &&
+        viewer &&
+        host
+    ) {
+
+        const newRect =
+            host.getBoundingClientRect();
+
+        const viewerRect =
+            viewer.getBoundingClientRect();
+
+        const centerX =
+            viewerRect.left +
+            viewer.clientWidth / 2;
+
+        const centerY =
+            viewerRect.top +
+            viewer.clientHeight / 2;
+
+        viewer.scrollLeft +=
+            newRect.left +
+            zoomAnchor.x * newRect.width -
+            centerX;
+
+        viewer.scrollTop +=
+            newRect.top +
+            zoomAnchor.y * newRect.height -
+            centerY;
+    }
 }
 
 
@@ -28000,7 +28332,12 @@ function fitOsspsDocxPreview() {
             availableWidth / naturalWidth
         );
 
-    setOsspsDocxZoom(scale);
+    setOsspsDocxZoom(
+        scale,
+        {
+            preserveScroll: false
+        }
+    );
 
     osspsDocxAutoFit = true;
 }
