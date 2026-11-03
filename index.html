@@ -2226,6 +2226,45 @@ and (max-width: 950px) {
     }
 }
 
+
+/* =========================================================
+   OSSPS｜程序書正式列印模式統一
+
+   1. 編輯／檢視模式均使用正式檢視版列印樣式
+   2. 移除編輯欄位黃色背景及虛線外框
+   3. 保留正式程序書原本的表格黑色框線
+   4. 不切換真正的編輯狀態
+   5. 不影響 PDF／圖片附件獨立列印
+========================================================= */
+
+@media print {
+
+    /* 程序書：一般可編輯欄位 */
+    body:not(.ossps-attachment-print)
+    #report-content-wrapper
+    .editable-field.admin-edit-mode {
+
+        background-color: transparent !important;
+        border: 0 !important;
+        color: inherit !important;
+        box-shadow: none !important;
+        outline: none !important;
+        caret-color: transparent !important;
+    }
+
+    /* 表格儲存格：恢復正式列印的黑色框線 */
+    body:not(.ossps-attachment-print)
+    #report-content-wrapper
+    .report-table td.admin-edit-mode {
+
+        border: 1px solid #000 !important;
+        background-color: #ffffff !important;
+        color: #000000 !important;
+    }
+
+}
+
+
 /* =========================================================
    iPhone / iPad Safari 列印最佳化
 
