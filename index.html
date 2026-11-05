@@ -28891,6 +28891,9 @@ document.addEventListener('keydown', event => {
         overlay &&
         overlay.style.display === 'flex'
     ) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+
         closeExternalFilePreview();
     }
 });
@@ -32023,23 +32026,185 @@ document.addEventListener(
     function(event) {
 
         if (
-            event.key ===
-            'Escape'
+            event.key !== 'Escape' ||
+            event.defaultPrevented
+        ) {
+            return;
+        }
+
+        /*
+         * 檢查指定視窗是否開啟。
+         */
+        const isModalOpen = (id) => {
+            const modal = document.getElementById(id);
+
+            return !!modal &&
+                !modal.classList.contains('hidden');
+        };
+
+        /*
+         * 檢查操作按鈕是否正在忙碌。
+         */
+        const isButtonBusy = (id) =>
+            document.getElementById(id)?.disabled === true;
+
+        /*
+         * 雲端中心第三層視窗：
+         * ESC 優先關閉最上層。
+         *
+         * 若正在儲存或驗證，
+         * 不允許 ESC 提前中斷。
+         */
+        const cloudChildModals = [
+            [
+                'cloud-preview-password-reset-modal',
+                closeCloudPreviewPasswordResetModal,
+                'cloud-preview-password-reset-save-btn'
+            ],
+            [
+                'cloud-workspace-rename-modal',
+                closeCloudWorkspaceRenameModal,
+                'cloud-workspace-rename-save-btn'
+            ],
+            [
+                'cloud-publisher-create-modal',
+                closeCloudPublisherCreateModal,
+                'cloud-publisher-create-save-btn'
+            ],
+            [
+                'cloud-publisher-password-modal',
+                closeCloudPublisherPasswordModal,
+                'cloud-publisher-password-save-btn'
+            ],
+            [
+                'cloud-preview-edit-modal',
+                closeCloudPreviewEditModal,
+                'cloud-preview-edit-save-btn'
+            ],
+            [
+                'cloud-publisher-login-modal',
+                closeCloudPublisherLoginModal,
+                'cloud-publisher-login-btn'
+            ]
+        ];
+
+        for (
+            const [modalId, closeModal, busyButtonId]
+            of cloudChildModals
         ) {
 
-            toggleModal(
-                'login-modal',
-                false
-            );
+            if (!isModalOpen(modalId)) {
+                continue;
+            }
 
+            event.preventDefault();
 
-            toggleModal(
-                'password-modal',
-                false
-            );
+            if (isButtonBusy(busyButtonId)) {
+                return;
+            }
 
+            closeModal();
+            return;
+        }
+
+        /*
+         * 雲端中心：
+         *
+         * 第一層首頁與第二層功能畫面，
+         * ESC 統一直接關閉雲端中心。
+         */
+        if (isModalOpen('cloud-preview-modal')) {
+
+            event.preventDefault();
+
+            /*
+             * 雲端操作或重新整理進行中，
+             * 不允許 ESC 提前關閉。
+             */
+            if (
+                standardProcedureCloudOperation ||
+                isButtonBusy('cloud-center-header-refresh-btn')
+            ) {
+                return;
+            }
+
+            closeCloudPreviewModal();
+
+            /*
+             * 確實關閉後，
+             * 清除雲端中心入口按鈕焦點。
+             */
+            if (!isModalOpen('cloud-preview-modal')) {
+                document
+                    .getElementById('cloud-preview-entry-btn')
+                    ?.blur();
+            }
+
+            return;
+        }
+
+        /*
+         * 權限登入。
+         */
+        if (isModalOpen('login-modal')) {
+
+            event.preventDefault();
+
+            if (isOsaiSystemAccessLoginPending) {
+                return;
+            }
+
+            toggleModal('login-modal', false);
+
+            if (!isModalOpen('login-modal')) {
+                document
+                    .getElementById('login-trigger')
+                    ?.blur();
+            }
+
+            return;
+        }
+
+        /*
+         * 權限與密碼設定。
+         */
+        if (isModalOpen('password-modal')) {
+
+            event.preventDefault();
+
+            if (isOsaiSystemAccessSettingsPending) {
+                return;
+            }
+
+            toggleModal('password-modal', false);
+
+            if (!isModalOpen('password-modal')) {
+                document
+                    .getElementById('permission-settings-btn')
+                    ?.blur();
+            }
+
+            return;
+        }
+
+        /*
+         * 匯出資料。
+         */
+        if (isModalOpen('data-export-modal')) {
+
+            event.preventDefault();
+
+            if (standardProcedureCloudOperation) {
+                return;
+            }
 
             closeDataExportModal();
+
+            if (!isModalOpen('data-export-modal')) {
+                document
+                    .getElementById('export-db-btn')
+                    ?.blur();
+            }
         }
     }
 );
